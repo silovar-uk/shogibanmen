@@ -1,0 +1,1655 @@
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>詰将棋練習アプリ</title>
+    <style>
+        body {
+            font-family: 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        .app-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .app-main-content {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .app-board-section {
+            flex: 1;
+            min-width: 350px;
+        }
+
+        .app-controls-section {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .app-board-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 auto 10px;
+        }
+
+        .app-board-with-coords {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr) 30px;
+            grid-template-rows: 30px repeat(9, 1fr);
+            width: 350px;
+            height: 350px;
+            border: 3px solid #8B4513;
+            background: #DEB887;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            border-radius: 8px;
+        }
+
+        .app-coord-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            color: #8B4513;
+            background: #F5DEB3;
+        }
+
+        .app-coord-corner {
+            background: #DEB887;
+        }
+
+        .app-cell {
+            border: 1px solid #8B4513;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: #F5DEB3;
+        }
+
+        .app-cell:hover {
+            background: #FFE4B5;
+            transform: scale(1.05);
+        }
+
+        .app-piece {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .app-piece.sente {
+            color: #FF4444;
+        }
+
+        .app-piece.gote {
+            color: #4444FF;
+            transform: rotate(180deg);
+        }
+
+        .app-player-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding: 8px;
+            background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .app-toggle-switch {
+            position: relative;
+            width: 60px;
+            height: 30px;
+            background: #ccc;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .app-toggle-switch:hover {
+            background: #bbb;
+        }
+
+        .app-toggle-switch.active {
+            background: #4CAF50;
+        }
+
+        .app-toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: white;
+            top: 2px;
+            left: 2px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .app-toggle-switch.active::after {
+            left: 32px;
+        }
+
+        .app-pieces-palette {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 4px;
+            margin-bottom: 10px;
+            padding: 8px;
+            background: linear-gradient(45deg, #f0f0f0, #e0e0e0);
+            border-radius: 8px;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .app-piece-btn {
+            padding: 8px 4px;
+            border: 2px solid #666;
+            background: #fff;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            min-height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .app-piece-btn:hover {
+            background: #e0e0ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .app-piece-btn.selected {
+            background: #4CAF50;
+            color: white;
+            border-color: #45a049;
+        }
+
+        .app-piece-btn.special-blue {
+            background: #e3f2fd;
+            border-color: #2196f3;
+        }
+
+        .app-piece-btn.special-yellow {
+            background: #fff9c4;
+            border-color: #ff9800;
+        }
+
+        .app-piece-btn.special-red {
+            background: #ffebee;
+            border-color: #f44336;
+        }
+
+        .app-piece-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #f5f5f5 !important;
+            border-color: #ccc !important;
+        }
+
+        .app-piece-btn.disabled:hover {
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .app-captured-pieces {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .app-captured-section {
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: linear-gradient(45deg, #f8f9fa, #ffffff);
+        }
+
+        .app-captured-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .app-captured-section h3 {
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .app-clear-captured-btn {
+            padding: 2px 6px;
+            border: 1px solid #ccc;
+            background: #f8f9fa;
+            cursor: pointer;
+            font-size: 10px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            color: #666;
+        }
+
+        .app-clear-captured-btn:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+
+        .app-captured-pieces-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            min-height: 40px;
+            align-items: center;
+        }
+
+        .app-captured-piece {
+            padding: 5px 10px;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .app-captured-piece:hover {
+            background: #ffeeee;
+            transform: scale(1.1);
+        }
+
+        .app-captured-piece.sente {
+            color: #FF4444;
+        }
+
+        .app-captured-piece.gote {
+            color: #4444FF;
+        }
+
+        .app-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .app-btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        }
+
+        .app-btn-primary {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            color: white;
+        }
+
+        .app-btn-share {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .app-btn-secondary {
+            background: linear-gradient(45deg, #74b9ff, #0984e3);
+            color: white;
+        }
+
+        .app-btn-warning {
+            background: linear-gradient(45deg, #fdcb6e, #e17055);
+            color: white;
+        }
+
+        .app-btn-danger {
+            background: linear-gradient(45deg, #fd79a8, #e84393);
+            color: white;
+        }
+
+        .app-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .app-sfen-output {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        .app-sfen-text {
+            font-family: monospace;
+            font-size: 14px;
+            word-break: break-all;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            margin-top: 10px;
+        }
+
+        .app-message {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 20px;
+            background: #4CAF50;
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.3s ease;
+            pointer-events: none;
+            max-width: 90vw;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .app-message.show {
+            opacity: 1;
+        }
+
+        .app-message.error {
+            background: #f44336;
+        }
+
+        .app-message.warning {
+            background: #ff9800;
+        }
+
+        .app-cell.invalid {
+            background: #ffcdd2 !important;
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .app-cell.pickup-source {
+            background: #ffeb3b !important;
+            box-shadow: inset 0 0 15px rgba(255,193,7,0.6);
+            animation: pulse 1.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: inset 0 0 15px rgba(255,193,7,0.6); }
+            100% { box-shadow: inset 0 0 20px rgba(255,193,7,0.9); }
+        }
+
+        .app-piece-indicator {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            opacity: 0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            user-select: none;
+            max-width: 90vw;
+            text-align: center;
+        }
+
+        .app-piece-indicator:hover {
+            background: #ffeaa7;
+            border-color: #fdcb6e;
+            transform: translateX(-50%) scale(1.05);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .app-piece-indicator::after {
+            content: '(タップで削除)';
+            display: block;
+            font-size: 11px;
+            color: #666;
+            margin-top: 2px;
+            font-weight: normal;
+        }
+
+        .app-piece-indicator.show {
+            opacity: 1;
+        }
+
+        .app-return-to-palette-btn {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            opacity: 0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            user-select: none;
+            max-width: 90vw;
+            text-align: center;
+            display: none;
+        }
+
+        .app-return-to-palette-btn:hover {
+            background: linear-gradient(45deg, #ff5252, #d32f2f);
+            transform: translateX(-50%) scale(1.05);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .app-return-to-palette-btn.show {
+            opacity: 1;
+            display: block;
+        }
+
+        .app-turn-dialog, .app-promote-dialog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .app-turn-dialog.show, .app-promote-dialog.show {
+            opacity: 1;
+        }
+
+        .app-turn-dialog-content, .app-promote-dialog-content {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 90%;
+            width: 300px;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+
+        .app-turn-dialog.show .app-turn-dialog-content, .app-promote-dialog.show .app-promote-dialog-content {
+            transform: translateY(0);
+        }
+
+        .app-turn-dialog-header, .app-promote-dialog-header {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .app-turn-dialog-buttons, .app-promote-dialog-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .app-turn-btn, .app-promote-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background 0.3s ease, transform 0.2s ease;
+            flex: 1;
+            max-width: 120px;
+        }
+
+        .app-turn-btn.sente {
+            background: linear-gradient(45deg, #f44336, #ef5350);
+            color: white;
+        }
+
+        .app-turn-btn.sente:hover {
+            background: linear-gradient(45deg, #e53935, #e53935);
+            transform: translateY(-2px);
+        }
+
+        .app-turn-btn.gote {
+            background: linear-gradient(45deg, #2196f3, #42a5f5);
+            color: white;
+        }
+
+        .app-turn-btn.gote:hover {
+            background: linear-gradient(45deg, #1e88e5, #1e88e5);
+            transform: translateY(-2px);
+        }
+
+        .app-promote-btn:first-child {
+            background: linear-gradient(45deg, #4CAF50, #66BB6A);
+            color: white;
+        }
+
+        .app-promote-btn:first-child:hover {
+            background: linear-gradient(45deg, #45a049, #5cb860);
+            transform: translateY(-2px);
+        }
+
+        .app-promote-btn:last-child {
+            background: linear-gradient(45deg, #FF9800, #FFB74D);
+            color: white;
+        }
+
+        .app-promote-btn:last-child:hover {
+            background: linear-gradient(45deg, #fb8c00, #ffa726);
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .app-main-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .app-board-section, .app-controls-section {
+                min-width: unset;
+            }
+            
+            .app-board-with-coords {
+                width: min(90vw, 350px);
+                height: min(90vw, 350px);
+                margin: 0 auto 15px;
+            }
+            
+            .app-pieces-palette {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 6px;
+                padding: 10px;
+                margin-bottom: 15px;
+            }
+            
+            .app-piece-btn {
+                padding: 6px 4px;
+                font-size: 12px;
+                min-height: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="app-main-content">
+            <div class="app-board-section" id="appBoardSection">
+                <!-- 盤面はJavaScriptで動的に作成 -->
+            </div>
+            
+            <div class="app-controls-section">
+                <div class="app-player-toggle">
+                    <span>配置する駒:</span>
+                    <span id="appPlayerLabel">先手</span>
+                    <div class="app-toggle-switch" id="appPlayerToggle"></div>
+                </div>
+                
+                <div class="app-player-toggle">
+                    <span>駒の成り:</span>
+                    <span id="appPromoteLabel">成らない</span>
+                    <div class="app-toggle-switch active" id="appPromoteToggle"></div>
+                </div>
+                
+                <div class="app-pieces-palette" id="appPiecesPalette"></div>
+                
+                <div class="app-captured-pieces">
+                    <div class="app-captured-section">
+                        <div class="app-captured-header">
+                            <h3>先手持ち駒</h3>
+                            <button class="app-clear-captured-btn" id="appClearSenteBtn">クリア</button>
+                        </div>
+                        <div class="app-captured-pieces-list" id="appSenteCaptured"></div>
+                    </div>
+                    <div class="app-captured-section">
+                        <div class="app-captured-header">
+                            <h3>後手持ち駒</h3>
+                            <button class="app-clear-captured-btn" id="appClearGoteBtn">クリア</button>
+                        </div>
+                        <div class="app-captured-pieces-list" id="appGoteCaptured"></div>
+                    </div>
+                </div>
+                
+                <div class="app-controls">
+                    <button class="app-btn app-btn-primary" id="appCopySfenBtn">SFENをコピー</button>
+                    <button class="app-btn app-btn-primary" id="appImportSfenBtn">SFENをインポート</button>
+                    <button class="app-btn app-btn-share" id="appGenerateShareBtn">共有URLを生成</button>
+                    <button class="app-btn app-btn-warning" id="appPiyoshogiBtn">ぴよ将棋リンク生成</button>
+                    <button class="app-btn app-btn-secondary" id="appInitialPositionBtn">初期配置で並べる</button>
+                    <button class="app-btn app-btn-secondary" id="appMoveRemainingBtn">余り駒を後手持ち駒に</button>
+                    <button class="app-btn app-btn-danger" id="appClearBoardBtn">クリア</button>
+                </div>
+                
+                <div class="app-sfen-output">
+                    <strong>SFEN文字列:</strong>
+                    <div class="app-sfen-text" id="appSfenText">局面を作成してください</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-message" id="appMessage"></div>
+
+    <button class="app-return-to-palette-btn" id="appReturnToPaletteBtn">パレットに戻す</button>
+
+    <div class="app-turn-dialog" id="appTurnDialog" style="display: none;">
+        <div class="app-turn-dialog-content">
+            <div class="app-turn-dialog-header">手番を選択してください</div>
+            <div class="app-turn-dialog-buttons">
+                <button class="app-turn-btn sente" id="appTurnSenteBtn">先手番</button>
+                <button class="app-turn-btn gote" id="appTurnGoteBtn">後手番</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-promote-dialog" id="appPromoteDialog" style="display: none;">
+        <div class="app-promote-dialog-content">
+            <div class="app-promote-dialog-header">駒を成りますか？</div>
+            <div class="app-promote-dialog-buttons">
+                <button class="app-promote-btn" id="appPromoteYesBtn">成る</button>
+                <button class="app-promote-btn" id="appPromoteNoBtn">成らない</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 基本的な変数とデータ構造の定義
+        const appPieces = {
+            'P': '歩', 'L': '香', 'N': '桂', 'S': '銀', 'G': '金', 'B': '角', 'R': '飛', 'K': '玉',
+            '+P': 'と', '+L': '杏', '+N': '圭', '+S': '全', '+B': '馬', '+R': '竜'
+        };
+
+        const appSfenPieceOrder = ['R', 'B', 'G', 'S', 'N', 'L', 'P'];
+        const appMaxPieces = { 'P': 18, 'L': 4, 'N': 4, 'S': 4, 'G': 4, 'B': 2, 'R': 2, 'K': 2 };
+        const appMaxKingPerPlayer = 1;
+
+        // アプリの状態変数
+        let appCurrentPlayer = true; // true: 先手, false: 後手
+        let appSelectedPiece = null; // パレットで選択された駒
+        let appBoard = Array(9).fill(null).map(() => Array(9).fill(null)); // 盤面
+        let appCapturedPieces = { sente: {}, gote: {} }; // 持ち駒
+        let appAudioContext = null;
+        let appSoundEnabled = true;
+        let appPickedUpPiece = null; // 盤上から拾い上げた駒の情報
+        let appAutoPromoteEnabled = true; // true: 強制成り以外は成らない
+        let appPendingExportAction = null; // SFEN出力時の手番選択用
+        let appPendingPromotion = null; // 成り選択の結果を待つ駒情報
+
+        // メッセージ表示機能
+        function appShowMessage(text, type = 'success') {
+            const message = document.getElementById('appMessage');
+            message.textContent = text;
+            message.className = `app-message ${type}`;
+            message.classList.add('show');
+            
+            setTimeout(() => {
+                message.classList.remove('show');
+            }, 3000);
+        }
+
+        // 駒選択処理
+        function appSelectPiece(pieceKey, btnElement) {
+            appPlayPieceSound();
+            document.querySelectorAll('.app-piece-btn').forEach(btn => btn.classList.remove('selected'));
+            appSelectedPiece = pieceKey;
+            btnElement.classList.add('selected');
+            appShowMessage(`${appPieces[pieceKey]}を選択しました`);
+        }
+
+        // 盤面作成機能
+        function appCreateBoard() {
+            const boardSection = document.getElementById('appBoardSection');
+            const existingBoard = boardSection.querySelector('.app-board-container');
+            if (existingBoard) {
+                existingBoard.remove();
+            }
+            
+            const boardContainer = document.createElement('div');
+            boardContainer.className = 'app-board-container';
+            
+            const boardWithCoords = document.createElement('div');
+            boardWithCoords.className = 'app-board-with-coords';
+            
+            // 上部の筋番号（9-1）
+            for (let col = 9; col >= 1; col--) {
+                const colLabel = document.createElement('div');
+                colLabel.className = 'app-coord-label';
+                colLabel.textContent = col;
+                boardWithCoords.appendChild(colLabel);
+            }
+            
+            // 右上角（空白）
+            const rightCorner = document.createElement('div');
+            rightCorner.className = 'app-coord-label app-coord-corner';
+            boardWithCoords.appendChild(rightCorner);
+            
+            // 各行を作成
+            for (let row = 0; row < 9; row++) {
+                // 各セルを作成
+                for (let col = 0; col < 9; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'app-cell';
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+                    cell.onclick = () => appHandleCellClick(row, col);
+                    boardWithCoords.appendChild(cell);
+                }
+                
+                // 右側の段番号
+                const danNames = ['一', '二', '三', '四', '五', '六', '七', '八', '九'];
+                const rowLabel = document.createElement('div');
+                rowLabel.className = 'app-coord-label';
+                rowLabel.textContent = danNames[row];
+                boardWithCoords.appendChild(rowLabel);
+            }
+            
+            boardContainer.appendChild(boardWithCoords);
+            boardSection.insertBefore(boardContainer, boardSection.firstChild);
+        }
+
+        // 駒パレット作成機能
+        function appCreatePiecesPalette() {
+            const palette = document.getElementById('appPiecesPalette');
+            palette.innerHTML = '';
+            
+            Object.entries(appPieces).forEach(([key, name]) => {
+                const btn = document.createElement('div');
+                btn.className = 'app-piece-btn';
+                btn.textContent = name;
+                btn.dataset.piece = key;
+                btn.onclick = () => appSelectPiece(key, btn);
+                
+                if (key.startsWith('+')) {
+                    btn.classList.add('special-red');
+                } else if (key === 'B' || key === 'R') {
+                    btn.classList.add('special-blue');
+                } else if (key === 'K') {
+                    btn.classList.add('special-yellow');
+                }
+                
+                palette.appendChild(btn);
+            });
+            
+            appUpdatePieceAvailability();
+        }
+
+        // 盤面更新機能
+        function appUpdateBoard() {
+            const cells = document.querySelectorAll('.app-cell');
+            cells.forEach((cell) => {
+                const row = parseInt(cell.dataset.row);
+                const col = parseInt(cell.dataset.col);
+                
+                const piece = appBoard[row][col];
+                
+                if (piece && piece.piece && piece.player !== undefined) {
+                    const pieceName = appPieces[piece.piece] || piece.piece;
+                    cell.innerHTML = `<span class="app-piece ${piece.player ? 'sente' : 'gote'}">${pieceName}</span>`;
+                } else {
+                    cell.innerHTML = '';
+                }
+                
+                // 特殊なクラスをリセット
+                cell.classList.remove('invalid', 'pickup-source');
+            });
+        }
+
+        // セルクリック処理
+        function appHandleCellClick(row, col) {
+            // 拾った駒がある場合は配置処理
+            if (appPickedUpPiece) {
+                appPlacePickedUpPiece(row, col);
+                return;
+            }
+
+            // 選択された駒がある場合は配置処理
+            if (appSelectedPiece) {
+                appPlacePiece(row, col);
+                return;
+            }
+
+            // 駒を拾い上げる処理
+            const piece = appBoard[row][col];
+            if (piece && piece.piece) {
+                appPickUpPiece(row, col);
+            }
+        }
+
+        // 駒を配置する処理
+        function appPlacePiece(row, col) {
+            if (!appSelectedPiece) return;
+
+            // 既に駒がある場合は置き換え
+            const existingPiece = appBoard[row][col];
+            if (existingPiece && existingPiece.piece) {
+                appAddToCaptured(existingPiece.piece, !existingPiece.player);
+            }
+
+            // 成り判定
+            const shouldPromote = appShouldPromote(appSelectedPiece, row, appCurrentPlayer);
+            
+            if (shouldPromote === 'force') {
+                // 強制成り
+                const promotedPiece = '+' + appSelectedPiece;
+                appBoard[row][col] = { piece: promotedPiece, player: appCurrentPlayer };
+                appPlayPieceSound();
+                appShowMessage(`${appPieces[promotedPiece]}を配置しました（強制成り）`);
+            } else if (shouldPromote === 'optional' && !appAutoPromoteEnabled) {
+                // 成り選択ダイアログを表示
+                appPendingPromotion = { piece: appSelectedPiece, row, col, player: appCurrentPlayer };
+                appShowPromoteDialog();
+                return;
+            } else {
+                // 通常配置（自動成り無効の場合は成らない）
+                appBoard[row][col] = { piece: appSelectedPiece, player: appCurrentPlayer };
+                appPlayPieceSound();
+                appShowMessage(`${appPieces[appSelectedPiece]}を配置しました`);
+            }
+
+            appSelectedPiece = null;
+            document.querySelectorAll('.app-piece-btn').forEach(btn => btn.classList.remove('selected'));
+            appUpdateBoard();
+            appUpdateCaptured();
+            appUpdatePieceAvailability();
+            appUpdateSfen();
+        }
+
+        // 駒を拾い上げる処理
+        function appPickUpPiece(row, col) {
+            const piece = appBoard[row][col];
+            if (!piece || !piece.piece) return;
+
+            appPickedUpPiece = { ...piece, sourceRow: row, sourceCol: col };
+            appBoard[row][col] = null;
+            
+            // 元の位置をハイライト
+            const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+            cell.classList.add('pickup-source');
+            
+            appPlayPieceSound();
+            appShowPieceIndicator();
+            appUpdateBoard();
+            appUpdateSfen();
+        }
+
+        // 拾った駒を配置する処理
+        function appPlacePickedUpPiece(row, col) {
+            if (!appPickedUpPiece) return;
+
+            // 元の位置に戻す場合
+            if (row === appPickedUpPiece.sourceRow && col === appPickedUpPiece.sourceCol) {
+                appBoard[row][col] = { piece: appPickedUpPiece.piece, player: appPickedUpPiece.player };
+                appPickedUpPiece = null;
+                appHidePieceIndicator();
+                appUpdateBoard();
+                appUpdateSfen();
+                appShowMessage('駒を元の位置に戻しました');
+                return;
+            }
+
+            // 既に駒がある場合は置き換え
+            const existingPiece = appBoard[row][col];
+            if (existingPiece && existingPiece.piece) {
+                appAddToCaptured(existingPiece.piece, !existingPiece.player);
+            }
+
+            // 成り判定
+            const shouldPromote = appShouldPromote(appPickedUpPiece.piece, row, appPickedUpPiece.player);
+            
+            if (shouldPromote === 'force') {
+                // 強制成り
+                const promotedPiece = '+' + appPickedUpPiece.piece;
+                appBoard[row][col] = { piece: promotedPiece, player: appPickedUpPiece.player };
+                appShowMessage(`${appPieces[promotedPiece]}を移動しました（強制成り）`);
+            } else if (shouldPromote === 'optional' && !appAutoPromoteEnabled) {
+                // 成り選択ダイアログを表示
+                appPendingPromotion = { 
+                    piece: appPickedUpPiece.piece, 
+                    row, 
+                    col, 
+                    player: appPickedUpPiece.player,
+                    isMove: true
+                };
+                appShowPromoteDialog();
+                return;
+            } else {
+                // 通常移動
+                appBoard[row][col] = { piece: appPickedUpPiece.piece, player: appPickedUpPiece.player };
+                appShowMessage(`${appPieces[appPickedUpPiece.piece]}を移動しました`);
+            }
+
+            appPickedUpPiece = null;
+            appHidePieceIndicator();
+            appPlayPieceSound();
+            appUpdateBoard();
+            appUpdateCaptured();
+            appUpdateSfen();
+        }
+
+        // 成り判定
+        function appShouldPromote(piece, row, player) {
+            if (piece.startsWith('+')) return 'none'; // 既に成っている
+            if (piece === 'K' || piece === 'G') return 'none'; // 金と玉は成れない
+
+            const promotionZone = player ? [0, 1, 2] : [6, 7, 8];
+            
+            if (promotionZone.includes(row)) {
+                // 強制成り判定
+                if ((piece === 'P' || piece === 'L') && 
+                    ((player && row === 0) || (!player && row === 8))) {
+                    return 'force';
+                }
+                if (piece === 'N' && 
+                    ((player && (row === 0 || row === 1)) || (!player && (row === 7 || row === 8)))) {
+                    return 'force';
+                }
+                return 'optional';
+            }
+            
+            return 'none';
+        }
+
+        // 成りダイアログ表示
+        function appShowPromoteDialog() {
+            const dialog = document.getElementById('appPromoteDialog');
+            dialog.style.display = 'flex';
+            setTimeout(() => dialog.classList.add('show'), 10);
+        }
+
+        // 成りダイアログ非表示
+        function appHidePromoteDialog() {
+            const dialog = document.getElementById('appPromoteDialog');
+            dialog.classList.remove('show');
+            setTimeout(() => dialog.style.display = 'none', 300);
+        }
+
+        // 駒インジケータ表示
+        function appShowPieceIndicator() {
+            if (!appPickedUpPiece) return;
+            
+            const indicator = document.querySelector('.app-piece-indicator');
+            if (!indicator) {
+                const newIndicator = document.createElement('div');
+                newIndicator.className = 'app-piece-indicator';
+                newIndicator.onclick = appReturnPickedUpPiece;
+                document.body.appendChild(newIndicator);
+            }
+            
+            const indicatorElement = document.querySelector('.app-piece-indicator');
+            const pieceName = appPieces[appPickedUpPiece.piece];
+            const playerName = appPickedUpPiece.player ? '先手' : '後手';
+            indicatorElement.innerHTML = `${playerName}の${pieceName}を持っています`;
+            indicatorElement.classList.add('show');
+            
+            const returnBtn = document.getElementById('appReturnToPaletteBtn');
+            returnBtn.classList.add('show');
+        }
+
+        // 駒インジケータ非表示
+        function appHidePieceIndicator() {
+            const indicator = document.querySelector('.app-piece-indicator');
+            const returnBtn = document.getElementById('appReturnToPaletteBtn');
+            
+            if (indicator) {
+                indicator.classList.remove('show');
+            }
+            if (returnBtn) {
+                returnBtn.classList.remove('show');
+            }
+        }
+
+        // 拾った駒を元に戻す
+        function appReturnPickedUpPiece() {
+            if (!appPickedUpPiece) return;
+            
+            appBoard[appPickedUpPiece.sourceRow][appPickedUpPiece.sourceCol] = {
+                piece: appPickedUpPiece.piece,
+                player: appPickedUpPiece.player
+            };
+            
+            appPickedUpPiece = null;
+            appHidePieceIndicator();
+            appUpdateBoard();
+            appUpdateSfen();
+            appShowMessage('駒を元の位置に戻しました');
+        }
+
+        // 拾った駒をパレットに戻す
+        function appReturnPickedUpPieceToCapture() {
+            if (!appPickedUpPiece) return;
+            
+            const basePiece = appPickedUpPiece.piece.replace('+', '');
+            const targetPlayer = appPickedUpPiece.player ? 'sente' : 'gote';
+            appCapturedPieces[targetPlayer][basePiece] = (appCapturedPieces[targetPlayer][basePiece] || 0) + 1;
+            
+            appPickedUpPiece = null;
+            appHidePieceIndicator();
+            appUpdateCaptured();
+            appUpdatePieceAvailability();
+            appUpdateSfen();
+            appShowMessage('駒を持ち駒に戻しました');
+        }
+
+        // 持ち駒に追加
+        function appAddToCaptured(piece, player) {
+            const basePiece = piece.replace('+', '');
+            const targetPlayer = player ? 'sente' : 'gote';
+            appCapturedPieces[targetPlayer][basePiece] = (appCapturedPieces[targetPlayer][basePiece] || 0) + 1;
+        }
+
+        // 持ち駒更新
+        function appUpdateCaptured() {
+            appUpdateCapturedForPlayer('sente');
+            appUpdateCapturedForPlayer('gote');
+        }
+
+        function appUpdateCapturedForPlayer(player) {
+            const container = document.getElementById(player === 'sente' ? 'appSenteCaptured' : 'appGoteCaptured');
+            container.innerHTML = '';
+            
+            const pieces = appCapturedPieces[player];
+            appSfenPieceOrder.forEach(piece => {
+                const count = pieces[piece] || 0;
+                for (let i = 0; i < count; i++) {
+                    const pieceElement = document.createElement('div');
+                    pieceElement.className = `app-captured-piece ${player}`;
+                    pieceElement.textContent = appPieces[piece];
+                    pieceElement.onclick = () => appUseCapturedPiece(piece, player, pieceElement);
+                    container.appendChild(pieceElement);
+                }
+            });
+        }
+
+        // 持ち駒使用
+        function appUseCapturedPiece(piece, player, element) {
+            if (appCapturedPieces[player][piece] > 0) {
+                appCapturedPieces[player][piece]--;
+                if (appCapturedPieces[player][piece] === 0) {
+                    delete appCapturedPieces[player][piece];
+                }
+                
+                appCurrentPlayer = (player === 'sente');
+                appSelectedPiece = piece;
+                
+                document.querySelectorAll('.app-piece-btn').forEach(btn => btn.classList.remove('selected'));
+                const paletteBtn = document.querySelector(`[data-piece="${piece}"]`);
+                if (paletteBtn) paletteBtn.classList.add('selected');
+                
+                appUpdatePlayerToggle();
+                appUpdateCaptured();
+                appUpdatePieceAvailability();
+                appUpdateSfen();
+                appPlayPieceSound();
+                appShowMessage(`${appPieces[piece]}を選択しました`);
+            }
+        }
+
+        // 駒の利用可能性更新
+        function appUpdatePieceAvailability() {
+            const pieceCount = appCountPiecesOnBoard();
+            
+            document.querySelectorAll('.app-piece-btn').forEach(btn => {
+                const piece = btn.dataset.piece;
+                const count = pieceCount[piece] || 0;
+                const capturedSente = appCapturedPieces.sente[piece] || 0;
+                const capturedGote = appCapturedPieces.gote[piece] || 0;
+                const totalUsed = count + capturedSente + capturedGote;
+                
+                btn.classList.remove('disabled');
+                
+                if (piece === 'K') {
+                    const senteKings = appCountKingsForPlayer(true);
+                    const goteKings = appCountKingsForPlayer(false);
+                    if ((appCurrentPlayer && senteKings >= appMaxKingPerPlayer) || 
+                        (!appCurrentPlayer && goteKings >= appMaxKingPerPlayer)) {
+                        btn.classList.add('disabled');
+                    }
+                } else if (appMaxPieces[piece] && totalUsed >= appMaxPieces[piece]) {
+                    btn.classList.add('disabled');
+                }
+            });
+        }
+
+        // 盤上の駒をカウント
+        function appCountPiecesOnBoard() {
+            const count = {};
+            appBoard.forEach(row => {
+                row.forEach(cell => {
+                    if (cell && cell.piece) {
+                        const basePiece = cell.piece.replace('+', '');
+                        count[basePiece] = (count[basePiece] || 0) + 1;
+                    }
+                });
+            });
+            return count;
+        }
+
+        // 王の数をカウント
+        function appCountKingsForPlayer(player) {
+            let count = 0;
+            appBoard.forEach(row => {
+                row.forEach(cell => {
+                    if (cell && cell.piece === 'K' && cell.player === player) {
+                        count++;
+                    }
+                });
+            });
+            return count;
+        }
+
+        // プレイヤー切り替え
+        function appUpdatePlayerToggle() {
+            const label = document.getElementById('appPlayerLabel');
+            const toggle = document.getElementById('appPlayerToggle');
+            
+            if (appCurrentPlayer) {
+                label.textContent = '先手';
+                toggle.classList.remove('active');
+            } else {
+                label.textContent = '後手';
+                toggle.classList.add('active');
+            }
+        }
+
+        // 成り設定切り替え
+        function appUpdatePromoteToggle() {
+            const label = document.getElementById('appPromoteLabel');
+            const toggle = document.getElementById('appPromoteToggle');
+            
+            if (appAutoPromoteEnabled) {
+                label.textContent = '成らない';
+                toggle.classList.add('active');
+            } else {
+                label.textContent = '成る・成らず選択';
+                toggle.classList.remove('active');
+            }
+        }
+
+        // SFEN生成
+        function appGenerateSfen(turn = 'b') {
+            let sfen = '';
+            
+            // 盤面部分
+            for (let row = 0; row < 9; row++) {
+                let emptyCount = 0;
+                for (let col = 0; col < 9; col++) {
+                    const piece = appBoard[row][col];
+                    if (piece && piece.piece) {
+                        if (emptyCount > 0) {
+                            sfen += emptyCount;
+                            emptyCount = 0;
+                        }
+                        let pieceChar = piece.piece;
+                        if (!piece.player) {
+                            pieceChar = pieceChar.toLowerCase();
+                        }
+                        sfen += pieceChar;
+                    } else {
+                        emptyCount++;
+                    }
+                }
+                if (emptyCount > 0) {
+                    sfen += emptyCount;
+                }
+                if (row < 8) {
+                    sfen += '/';
+                }
+            }
+            
+            sfen += ` ${turn} `;
+            
+            // 持ち駒部分
+            let handStr = '';
+            ['sente', 'gote'].forEach(player => {
+                const pieces = appCapturedPieces[player];
+                appSfenPieceOrder.forEach(piece => {
+                    const count = pieces[piece] || 0;
+                    if (count > 0) {
+                        let pieceChar = piece;
+                        if (player === 'gote') {
+                            pieceChar = pieceChar.toLowerCase();
+                        }
+                        if (count > 1) {
+                            handStr += count;
+                        }
+                        handStr += pieceChar;
+                    }
+                });
+            });
+            
+            sfen += handStr || '-';
+            sfen += ' 1';
+            
+            return sfen;
+        }
+
+        // SFEN更新
+        function appUpdateSfen() {
+            const sfenText = document.getElementById('appSfenText');
+            const sfen = appGenerateSfen();
+            sfenText.textContent = sfen;
+        }
+
+        // SFEN インポート
+        function appImportSfen() {
+            const sfenInput = prompt('SFEN文字列を入力してください:');
+            if (!sfenInput) return;
+            
+            try {
+                appParseSfen(sfenInput.trim());
+                appShowMessage('SFEN文字列をインポートしました', 'success');
+            } catch (error) {
+                appShowMessage('SFEN文字列の形式が正しくありません', 'error');
+            }
+        }
+
+        // SFEN解析
+        function appParseSfen(sfen) {
+            const parts = sfen.split(' ');
+            if (parts.length < 3) throw new Error('Invalid SFEN format');
+            
+            const [boardPart, turnPart, handPart] = parts;
+            
+            // 盤面クリア
+            appBoard = Array(9).fill(null).map(() => Array(9).fill(null));
+            appCapturedPieces = { sente: {}, gote: {} };
+            
+            // 盤面解析
+            const rows = boardPart.split('/');
+            if (rows.length !== 9) throw new Error('Invalid board format');
+            
+            rows.forEach((row, rowIndex) => {
+                let colIndex = 0;
+                for (let i = 0; i < row.length; i++) {
+                    const char = row[i];
+                    if (/\d/.test(char)) {
+                        colIndex += parseInt(char);
+                    } else {
+                        const isPromoted = row[i + 1] === '+';
+                        let piece = isPromoted ? '+' + char.toUpperCase() : char.toUpperCase();
+                        const isGote = char === char.toLowerCase();
+                        
+                        if (isPromoted) i++; // +記号をスキップ
+                        
+                        appBoard[rowIndex][colIndex] = {
+                            piece: piece,
+                            player: !isGote
+                        };
+                        colIndex++;
+                    }
+                }
+            });
+            
+            // 持ち駒解析
+            if (handPart !== '-') {
+                for (let i = 0; i < handPart.length; i++) {
+                    const char = handPart[i];
+                    if (/\d/.test(char)) {
+                        const count = parseInt(char);
+                        const piece = handPart[i + 1].toUpperCase();
+                        const isGote = handPart[i + 1] === handPart[i + 1].toLowerCase();
+                        const player = isGote ? 'gote' : 'sente';
+                        
+                        appCapturedPieces[player][piece] = count;
+                        i++; // 駒文字をスキップ
+                    } else {
+                        const piece = char.toUpperCase();
+                        const isGote = char === char.toLowerCase();
+                        const player = isGote ? 'gote' : 'sente';
+                        
+                        appCapturedPieces[player][piece] = (appCapturedPieces[player][piece] || 0) + 1;
+                    }
+                }
+            }
+            
+            // 更新
+            appUpdateBoard();
+            appUpdateCaptured();
+            appUpdatePieceAvailability();
+            appUpdateSfen();
+        }
+
+        // 初期配置設定
+        function appSetInitialPosition() {
+            appBoard = Array(9).fill(null).map(() => Array(9).fill(null));
+            appCapturedPieces = { sente: {}, gote: {} };
+            
+            // 先手駒配置
+            const senteBackRank = ['L', 'N', 'S', 'G', 'K', 'G', 'S', 'N', 'L'];
+            senteBackRank.forEach((piece, col) => {
+                appBoard[8][col] = { piece, player: true };
+            });
+            
+            appBoard[7][1] = { piece: 'R', player: true };
+            appBoard[7][7] = { piece: 'B', player: true };
+            
+            for (let col = 0; col < 9; col++) {
+                appBoard[6][col] = { piece: 'P', player: true };
+            }
+            
+            // 後手駒配置
+            const goteBackRank = ['L', 'N', 'S', 'G', 'K', 'G', 'S', 'N', 'L'];
+            goteBackRank.forEach((piece, col) => {
+                appBoard[0][col] = { piece, player: false };
+            });
+            
+            appBoard[1][7] = { piece: 'R', player: false };
+            appBoard[1][1] = { piece: 'B', player: false };
+            
+            for (let col = 0; col < 9; col++) {
+                appBoard[2][col] = { piece: 'P', player: false };
+            }
+            
+            appUpdateBoard();
+            appUpdateCaptured();
+            appUpdatePieceAvailability();
+            appUpdateSfen();
+            appShowMessage('初期配置を設定しました');
+        }
+
+        // 盤面クリア
+        function appClearBoard() {
+            if (confirm('盤面をクリアしますか？')) {
+                appBoard = Array(9).fill(null).map(() => Array(9).fill(null));
+                appCapturedPieces = { sente: {}, gote: {} };
+                appSelectedPiece = null;
+                appPickedUpPiece = null;
+                
+                document.querySelectorAll('.app-piece-btn').forEach(btn => btn.classList.remove('selected'));
+                appHidePieceIndicator();
+                
+                appUpdateBoard();
+                appUpdateCaptured();
+                appUpdatePieceAvailability();
+                appUpdateSfen();
+                appShowMessage('盤面をクリアしました');
+            }
+        }
+
+        // 余り駒移動
+        function appMoveRemainingPieces() {
+            const totalPieces = appCountPiecesOnBoard();
+            const capturedSente = appCapturedPieces.sente;
+            const capturedGote = appCapturedPieces.gote;
+            
+            Object.entries(appMaxPieces).forEach(([piece, maxCount]) => {
+                const used = (totalPieces[piece] || 0) + (capturedSente[piece] || 0) + (capturedGote[piece] || 0);
+                const remaining = maxCount - used;
+                
+                if (remaining > 0) {
+                    appCapturedPieces.gote[piece] = (appCapturedPieces.gote[piece] || 0) + remaining;
+                }
+            });
+            
+            appUpdateCaptured();
+            appUpdatePieceAvailability();
+            appUpdateSfen();
+            appShowMessage('余り駒を後手持ち駒に移動しました');
+        }
+
+        // 持ち駒クリア
+        function appClearCapturedPieces(player) {
+            if (confirm(`${player === 'sente' ? '先手' : '後手'}の持ち駒をクリアしますか？`)) {
+                appCapturedPieces[player] = {};
+                appUpdateCaptured();
+                appUpdatePieceAvailability();
+                appUpdateSfen();
+                appShowMessage(`${player === 'sente' ? '先手' : '後手'}の持ち駒をクリアしました`);
+            }
+        }
+
+        // 音再生
+        function appPlayPieceSound() {
+            if (!appSoundEnabled) return;
+            
+            try {
+                if (!appAudioContext) {
+                    appAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                
+                const oscillator = appAudioContext.createOscillator();
+                const gainNode = appAudioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(appAudioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(800, appAudioContext.currentTime);
+                gainNode.gain.setValueAtTime(0.1, appAudioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, appAudioContext.currentTime + 0.1);
+                
+                oscillator.start(appAudioContext.currentTime);
+                oscillator.stop(appAudioContext.currentTime + 0.1);
+            } catch (error) {
+                // 音声が再生できない場合は無視
+            }
+        }
+
+        // 手番選択ダイアログ表示
+        function appShowTurnDialog(action) {
+            appPendingExportAction = action;
+            const dialog = document.getElementById('appTurnDialog');
+            dialog.style.display = 'flex';
+            setTimeout(() => dialog.classList.add('show'), 10);
+        }
+
+        // 手番選択ダイアログ非表示
+        function appHideTurnDialog() {
+            const dialog = document.getElementById('appTurnDialog');
+            dialog.classList.remove('show');
+            setTimeout(() => dialog.style.display = 'none', 300);
+        }
+
+        // URL生成
+        function appGenerateShareUrl(turn = 'b') {
+            const sfen = appGenerateSfen(turn);
+            const encodedSfen = encodeURIComponent(sfen);
+            const baseUrl = window.location.origin + window.location.pathname;
+            return `${baseUrl}?sfen=${encodedSfen}`;
+        }
+
+        // ぴよ将棋URL生成
+        function appGeneratePiyoShogiUrl(turn = 'b') {
+            const sfen = appGenerateSfen(turn);
+            const encodedSfen = encodeURIComponent(sfen);
+            return `https://www.studiok-i.net/ps/?sfen=${encodedSfen}`;
+        }
+
+        // イベントリスナー設定
+        function appSetupEventListeners() {
+            // プレイヤー切り替え
+            document.getElementById('appPlayerToggle').onclick = () => {
+                appCurrentPlayer = !appCurrentPlayer;
+                appUpdatePlayerToggle();
+            };
+            
+            // 成り設定切り替え
+            document.getElementById('appPromoteToggle').onclick = () => {
+                appAutoPromoteEnabled = !appAutoPromoteEnabled;
+                appUpdatePromoteToggle();
+            };
+            
+            // ボタンイベント
+            document.getElementById('appCopySfenBtn').onclick = () => appShowTurnDialog('copy');
+            document.getElementById('appImportSfenBtn').onclick = appImportSfen;
+            document.getElementById('appGenerateShareBtn').onclick = () => appShowTurnDialog('share');
+            document.getElementById('appPiyoshogiBtn').onclick = () => appShowTurnDialog('piyoshogi');
+            document.getElementById('appInitialPositionBtn').onclick = appSetInitialPosition;
+            document.getElementById('appMoveRemainingBtn').onclick = appMoveRemainingPieces;
+            document.getElementById('appClearBoardBtn').onclick = appClearBoard;
+            
+            // 持ち駒クリア
+            document.getElementById('appClearSenteBtn').onclick = () => appClearCapturedPieces('sente');
+            document.getElementById('appClearGoteBtn').onclick = () => appClearCapturedPieces('gote');
+            
+            // 拾った駒を戻すボタン
+            document.getElementById('appReturnToPaletteBtn').onclick = appReturnPickedUpPieceToCapture;
+            
+            // 手番選択ダイアログ
+            document.getElementById('appTurnSenteBtn').onclick = () => {
+                appExecuteExportAction('b');
+                appHideTurnDialog();
+            };
+            document.getElementById('appTurnGoteBtn').onclick = () => {
+                appExecuteExportAction('w');
+                appHideTurnDialog();
+            };
+            
+            // 成り選択ダイアログ
+            document.getElementById('appPromoteYesBtn').onclick = () => {
+                appExecutePromotion(true);
+                appHidePromoteDialog();
+            };
+            document.getElementById('appPromoteNoBtn').onclick = () => {
+                appExecutePromotion(false);
+                appHidePromoteDialog();
+            };
+        }
+
+        // エクスポートアクション実行
+        function appExecuteExportAction(turn) {
+            const sfen = appGenerateSfen(turn);
+            
+            switch (appPendingExportAction) {
+                case 'copy':
+                    navigator.clipboard.writeText(sfen).then(() => {
+                        appShowMessage('SFENをクリップボードにコピーしました');
+                    }).catch(() => {
+                        appShowMessage('クリップボードへのコピーに失敗しました', 'error');
+                    });
+                    break;
+                    
+                case 'share':
+                    const shareUrl = appGenerateShareUrl(turn);
+                    navigator.clipboard.writeText(shareUrl).then(() => {
+                        appShowMessage('共有URLをクリップボードにコピーしました');
+                    }).catch(() => {
+                        appShowMessage('クリップボードへのコピーに失敗しました', 'error');
+                    });
+                    break;
+                    
+                case 'piyoshogi':
+                    const piyoUrl = appGeneratePiyoShogiUrl(turn);
+                    window.open(piyoUrl, '_blank');
+                    appShowMessage('ぴよ将棋を開きました');
+                    break;
+            }
+            
+            appPendingExportAction = null;
+        }
+
+        // 成り実行
+        function appExecutePromotion(promote) {
+            if (!appPendingPromotion) return;
+            
+            const { piece, row, col, player, isMove } = appPendingPromotion;
+            const finalPiece = promote ? '+' + piece : piece;
+            
+            appBoard[row][col] = { piece: finalPiece, player };
+            
+            const action = isMove ? '移動' : '配置';
+            const message = promote ? 
+                `${appPieces[finalPiece]}を${action}しました（成り）` : 
+                `${appPieces[piece]}を${action}しました`;
+            
+            if (!isMove) {
+                appSelectedPiece = null;
+                document.querySelectorAll('.app-piece-btn').forEach(btn => btn.classList.remove('selected'));
+            } else {
+                appPickedUpPiece = null;
+                appHidePieceIndicator();
+            }
+            
+            appPlayPieceSound();
+            appShowMessage(message);
+            appUpdateBoard();
+            appUpdateCaptured();
+            appUpdatePieceAvailability();
+            appUpdateSfen();
+            
+            appPendingPromotion = null;
+        }
+
+        // URL パラメータからSFEN読み込み
+        function appLoadFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const sfen = urlParams.get('sfen');
+            
+            if (sfen) {
+                try {
+                    appParseSfen(decodeURIComponent(sfen));
+                    appShowMessage('URLからSFENを読み込みました', 'success');
+                } catch (error) {
+                    appShowMessage('URLのSFEN形式が正しくありません', 'error');
+                }
+            }
+        }
+
+        // 初期化
+        function appInit() {
+            appCreateBoard();
+            appCreatePiecesPalette();
+            appSetupEventListeners();
+            appUpdatePlayerToggle();
+            appUpdatePromoteToggle();
+            appUpdateBoard();
+            appUpdateCaptured();
+            appUpdatePieceAvailability();
+            appUpdateSfen();
+            
+            // URL パラメータからSFEN読み込み
+            appLoadFromUrl();
+            
+            appShowMessage('詰将棋練習アプリが起動しました');
+        }
+
+        // アプリ初期化実行
+        document.addEventListener('DOMContentLoaded', appInit);
+    </script>
+</body>
+</html>
