@@ -632,9 +632,17 @@
         }
 
         @media (max-width: 768px) {
+            body {
+                padding: 5px;
+            }
+            
+            .app-container {
+                padding: 10px;
+            }
+            
             .app-main-content {
                 flex-direction: column;
-                gap: 20px;
+                gap: 15px;
             }
             
             .app-board-section, .app-controls-section {
@@ -642,32 +650,148 @@
             }
             
             .app-board-with-coords {
-                width: min(85vw, 300px); 
-                height: min(85vw, 300px);
-                margin: 0 auto 15px;
+                width: min(85vw, 280px); 
+                height: min(85vw, 280px);
+                margin: 0 auto 10px;
+            }
+            
+            .app-player-toggle, .app-sound-toggle {
+                padding: 6px;
+                margin-bottom: 8px;
             }
             
             .app-pieces-palette {
                 grid-template-columns: repeat(4, 1fr);
-                gap: 6px;
-                padding: 10px;
-                margin-bottom: 15px;
+                gap: 4px;
+                padding: 8px;
+                margin-bottom: 10px;
             }
             
             .app-piece-btn {
-                padding: 6px 4px;
-                font-size: 12px;
-                min-height: 30px;
+                padding: 4px 2px;
+                font-size: 11px;
+                min-height: 28px;
             }
 
             .app-piece {
-                font-size: 18px; 
+                font-size: 16px; 
             }
             .app-cell {
-                font-size: 16px;
+                font-size: 14px;
             }
             .app-coord-label {
+                font-size: 11px;
+            }
+            
+            .app-captured-pieces {
+                margin-bottom: 8px;
+            }
+            
+            .app-captured-section {
+                padding: 6px;
+            }
+            
+            .app-captured-section h3 {
+                font-size: 13px;
+            }
+            
+            .app-controls {
+                gap: 6px;
+            }
+            
+            .app-btn {
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+            
+            .app-sfen-output {
+                margin-top: 15px;
+                padding: 12px;
+            }
+            
+            .app-sfen-text {
                 font-size: 12px;
+                padding: 8px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 3px;
+            }
+            
+            .app-container {
+                padding: 8px;
+            }
+            
+            .app-main-content {
+                gap: 10px;
+            }
+            
+            .app-board-with-coords {
+                width: min(90vw, 260px); 
+                height: min(90vw, 260px);
+                margin: 0 auto 8px;
+            }
+            
+            .app-player-toggle, .app-sound-toggle {
+                padding: 4px;
+                margin-bottom: 6px;
+                font-size: 13px;
+            }
+            
+            .app-pieces-palette {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 3px;
+                padding: 6px;
+                margin-bottom: 8px;
+            }
+            
+            .app-piece-btn {
+                padding: 3px 1px;
+                font-size: 10px;
+                min-height: 26px;
+            }
+
+            .app-piece {
+                font-size: 14px; 
+            }
+            .app-cell {
+                font-size: 12px;
+            }
+            .app-coord-label {
+                font-size: 10px;
+            }
+            
+            .app-captured-pieces {
+                margin-bottom: 6px;
+            }
+            
+            .app-captured-section {
+                padding: 4px;
+            }
+            
+            .app-captured-section h3 {
+                font-size: 12px;
+            }
+            
+            .app-controls {
+                gap: 4px;
+            }
+            
+            .app-btn {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+            
+            .app-sfen-output {
+                margin-top: 10px;
+                padding: 10px;
+            }
+            
+            .app-sfen-text {
+                font-size: 11px;
+                padding: 6px;
             }
         }
     </style>
