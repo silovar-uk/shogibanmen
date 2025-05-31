@@ -98,15 +98,19 @@
         }
 
         .app-piece.sente {
-            color: #FF4444;
+            color: #FF4444; /* Red for Sente */
         }
 
         .app-piece.gote {
-            color: #4444FF;
+            color: #4444FF; /* Blue for Gote */
+        }
+
+        /* Class for 180 degree rotation, applied conditionally */
+        .app-piece.rotated-graphic {
             transform: rotate(180deg);
         }
 
-        .app-player-toggle {
+        .app-player-toggle, .app-sound-toggle {
             display: flex;
             align-items: center;
             gap: 10px;
@@ -115,6 +119,11 @@
             background: linear-gradient(45deg, #f8f9fa, #e9ecef);
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .app-player-toggle span:first-child, .app-sound-toggle span:first-child {
+            min-width: 80px; 
+            white-space: nowrap;
         }
 
         .app-toggle-switch {
@@ -357,6 +366,42 @@
             border: 1px solid #ccc;
             margin-top: 10px;
         }
+        
+        .app-analysis-output {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e6f7ff; /* Light blue background for analysis */
+            border-radius: 8px;
+            border: 1px solid #91d5ff; /* Blue border */
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            font-size: 14px;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .app-analysis-output h4 {
+            margin-top: 0;
+            color: #1890ff; /* Darker blue for heading */
+            font-size: 16px;
+            border-bottom: 1px solid #bae7ff;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+        }
+
+        .app-analysis-output p {
+            margin-bottom: 10px;
+        }
+
+        .app-analysis-output p:last-child {
+            margin-bottom: 0;
+        }
+
+        .app-analysis-output.loading {
+            text-align: center;
+            font-style: italic;
+            color: #666;
+        }
+
 
         .app-message {
             position: fixed;
@@ -416,10 +461,10 @@
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
+            padding: 12px 16px;
             background: #fff3cd;
             border: 2px solid #ffc107;
             border-radius: 8px;
-            padding: 12px 16px;
             font-size: 14px;
             font-weight: bold;
             z-index: 1000;
@@ -597,8 +642,8 @@
             }
             
             .app-board-with-coords {
-                width: min(90vw, 350px);
-                height: min(90vw, 350px);
+                width: min(85vw, 300px); 
+                height: min(85vw, 300px);
                 margin: 0 auto 15px;
             }
             
@@ -614,6 +659,16 @@
                 font-size: 12px;
                 min-height: 30px;
             }
+
+            .app-piece {
+                font-size: 18px; 
+            }
+            .app-cell {
+                font-size: 16px;
+            }
+            .app-coord-label {
+                font-size: 12px;
+            }
         }
     </style>
 </head>
@@ -621,8 +676,7 @@
     <div class="app-container">
         <div class="app-main-content">
             <div class="app-board-section" id="appBoardSection">
-                <!-- 盤面はJavaScriptで動的に作成 -->
-            </div>
+                </div>
             
             <div class="app-controls-section">
                 <div class="app-player-toggle">
@@ -635,6 +689,12 @@
                     <span>駒の成り:</span>
                     <span id="appPromoteLabel">成らない</span>
                     <div class="app-toggle-switch active" id="appPromoteToggle"></div>
+                </div>
+
+                <div class="app-sound-toggle">
+                    <span>効果音:</span>
+                    <span id="appSoundLabel">オン</span>
+                    <div class="app-toggle-switch active" id="appSoundToggle"></div>
                 </div>
                 
                 <div class="app-pieces-palette" id="appPiecesPalette"></div>
@@ -663,6 +723,7 @@
                     <button class="app-btn app-btn-warning" id="appPiyoshogiBtn">ぴよ将棋リンク生成</button>
                     <button class="app-btn app-btn-secondary" id="appInitialPositionBtn">初期配置で並べる</button>
                     <button class="app-btn app-btn-secondary" id="appMoveRemainingBtn">余り駒を後手持ち駒に</button>
+                    <button class="app-btn app-btn-secondary" id="appFlipBoardBtn">盤面反転</button>
                     <button class="app-btn app-btn-danger" id="appClearBoardBtn">クリア</button>
                 </div>
                 
@@ -699,7 +760,7 @@
     </div>
 
     <script>
-        // 基本的な変数とデータ構造の定義
+        // Definition of basic variables and data structures
         const appPieces = {
             'P': '歩', 'L': '香', 'N': '桂', 'S': '銀', 'G': '金', 'B': '角', 'R': '飛', 'K': '玉',
             '+P': 'と', '+L': '杏', '+N': '圭', '+S': '全', '+B': '馬', '+R': '竜'
@@ -709,19 +770,20 @@
         const appMaxPieces = { 'P': 18, 'L': 4, 'N': 4, 'S': 4, 'G': 4, 'B': 2, 'R': 2, 'K': 2 };
         const appMaxKingPerPlayer = 1;
 
-        // アプリの状態変数
-        let appCurrentPlayer = true; // true: 先手, false: 後手
-        let appSelectedPiece = null; // パレットで選択された駒
-        let appBoard = Array(9).fill(null).map(() => Array(9).fill(null)); // 盤面
-        let appCapturedPieces = { sente: {}, gote: {} }; // 持ち駒
+        // Application state variables
+        let appCurrentPlayer = true; // true: Sente (first player), false: Gote (second player)
+        let appSelectedPiece = null; // Piece selected from the palette
+        let appBoard = Array(9).fill(null).map(() => Array(9).fill(null)); // Board state
+        let appCapturedPieces = { sente: {}, gote: {} }; // Captured pieces
         let appAudioContext = null;
-        let appSoundEnabled = true;
-        let appPickedUpPiece = null; // 盤上から拾い上げた駒の情報
-        let appAutoPromoteEnabled = true; // true: 強制成り以外は成らない
-        let appPendingExportAction = null; // SFEN出力時の手番選択用
-        let appPendingPromotion = null; // 成り選択の結果を待つ駒情報
+        let appSoundEnabled = true; // Sound enabled/disabled state
+        let appPickedUpPiece = null; // Information about a piece picked up from the board
+        let appAutoPromoteEnabled = true; // true: Don't promote unless forced
+        let appPendingExportAction = null; // For turn selection during SFEN export
+        let appPendingPromotion = null; // Piece information waiting for promotion decision
+        let appBoardFlipped = false; // Tracks if the board is currently flipped
 
-        // メッセージ表示機能
+        // Message display function
         function appShowMessage(text, type = 'success') {
             const message = document.getElementById('appMessage');
             message.textContent = text;
@@ -733,7 +795,7 @@
             }, 3000);
         }
 
-        // 駒選択処理
+        // Piece selection handling
         function appSelectPiece(pieceKey, btnElement) {
             appPlayPieceSound();
             document.querySelectorAll('.app-piece-btn').forEach(btn => btn.classList.remove('selected'));
@@ -742,7 +804,7 @@
             appShowMessage(`${appPieces[pieceKey]}を選択しました`);
         }
 
-        // 盤面作成機能
+        // Function to create the Shogi board
         function appCreateBoard() {
             const boardSection = document.getElementById('appBoardSection');
             const existingBoard = boardSection.querySelector('.app-board-container');
@@ -756,33 +818,41 @@
             const boardWithCoords = document.createElement('div');
             boardWithCoords.className = 'app-board-with-coords';
             
-            // 上部の筋番号（9-1）
-            for (let col = 9; col >= 1; col--) {
+            // Top column numbers (筋) - Change based on flip state
+            const sujiLabels = appBoardFlipped ? 
+                ['１', '２', '３', '４', '５', '６', '７', '８', '９'] :
+                ['９', '８', '７', '６', '５', '４', '３', '２', '１'];
+            
+            for (let col = 0; col < 9; col++) {
                 const colLabel = document.createElement('div');
                 colLabel.className = 'app-coord-label';
-                colLabel.textContent = col;
+                colLabel.textContent = sujiLabels[col];
                 boardWithCoords.appendChild(colLabel);
             }
             
-            // 右上角（空白）
+            // Top-right corner (empty)
             const rightCorner = document.createElement('div');
             rightCorner.className = 'app-coord-label app-coord-corner';
             boardWithCoords.appendChild(rightCorner);
             
-            // 各行を作成
+            // Create each row
+            const danNames = appBoardFlipped ?
+                ['九', '八', '七', '六', '五', '四', '三', '二', '一'] :
+                ['一', '二', '三', '四', '五', '六', '七', '八', '九'];
+            
             for (let row = 0; row < 9; row++) {
-                // 各セルを作成
+                // Create each cell
                 for (let col = 0; col < 9; col++) {
                     const cell = document.createElement('div');
                     cell.className = 'app-cell';
-                    cell.dataset.row = row;
-                    cell.dataset.col = col;
+                    // Store original row/col for internal logic
+                    cell.dataset.originalRow = row;
+                    cell.dataset.originalCol = col;
                     cell.onclick = () => appHandleCellClick(row, col);
                     boardWithCoords.appendChild(cell);
                 }
                 
-                // 右側の段番号
-                const danNames = ['一', '二', '三', '四', '五', '六', '七', '八', '九'];
+                // Right-side row numbers (段) - Change based on flip state
                 const rowLabel = document.createElement('div');
                 rowLabel.className = 'app-coord-label';
                 rowLabel.textContent = danNames[row];
@@ -793,7 +863,7 @@
             boardSection.insertBefore(boardContainer, boardSection.firstChild);
         }
 
-        // 駒パレット作成機能
+        // Function to create the piece palette
         function appCreatePiecesPalette() {
             const palette = document.getElementById('appPiecesPalette');
             palette.innerHTML = '';
@@ -819,74 +889,118 @@
             appUpdatePieceAvailability();
         }
 
-        // 盤面更新機能
+        // Function to update the board display
         function appUpdateBoard() {
             const cells = document.querySelectorAll('.app-cell');
             cells.forEach((cell) => {
-                const row = parseInt(cell.dataset.row);
-                const col = parseInt(cell.dataset.col);
+                const originalRow = parseInt(cell.dataset.originalRow);
+                const originalCol = parseInt(cell.dataset.originalCol);
                 
-                const piece = appBoard[row][col];
+                // Determine the actual piece to display based on flip state
+                const displayRow = appBoardFlipped ? 8 - originalRow : originalRow;
+                const displayCol = appBoardFlipped ? 8 - originalCol : originalCol;
+
+                const piece = appBoard[displayRow][displayCol];
                 
                 if (piece && piece.piece && piece.player !== undefined) {
                     const pieceName = appPieces[piece.piece] || piece.piece;
-                    cell.innerHTML = `<span class="app-piece ${piece.player ? 'sente' : 'gote'}">${pieceName}</span>`;
+                    
+                    let colorClass;
+                    let rotationClass = '';
+
+                    // When board is flipped, show colors in reverse
+                    if (appBoardFlipped) {
+                        // Flip the color display: Sente shows as blue, Gote shows as red
+                        colorClass = piece.player ? 'gote' : 'sente'; 
+                    } else {
+                        // Normal display: Sente shows as red, Gote shows as blue
+                        colorClass = piece.player ? 'sente' : 'gote'; 
+                    }
+
+                    // Determine if the piece graphic should be rotated 180 degrees
+                    // Normal view: Sente upright, Gote rotated
+                    // Flipped view: Sente rotated, Gote upright
+                    if (appBoardFlipped) {
+                        // In flipped view
+                        if (piece.player) {
+                            // Sente pieces - rotated in flipped view
+                            rotationClass = 'rotated-graphic';
+                        } else {
+                            // Gote pieces - upright in flipped view
+                            rotationClass = '';
+                        }
+                    } else {
+                        // In normal view
+                        if (piece.player) {
+                            // Sente pieces - upright in normal view
+                            rotationClass = '';
+                        } else {
+                            // Gote pieces - rotated in normal view
+                            rotationClass = 'rotated-graphic';
+                        }
+                    }
+
+                    cell.innerHTML = `<span class="app-piece ${colorClass} ${rotationClass}">${pieceName}</span>`;
                 } else {
                     cell.innerHTML = '';
                 }
                 
-                // 特殊なクラスをリセット
+                // Reset special classes
                 cell.classList.remove('invalid', 'pickup-source');
             });
         }
 
-        // セルクリック処理
-        function appHandleCellClick(row, col) {
-            // 拾った駒がある場合は配置処理
+        // Handle cell click event
+        function appHandleCellClick(originalRow, originalCol) {
+            // Convert original coordinates to current board orientation for logic
+            const logicRow = appBoardFlipped ? 8 - originalRow : originalRow;
+            const logicCol = appBoardFlipped ? 8 - originalCol : originalCol;
+
+            // If a piece is picked up, place it
             if (appPickedUpPiece) {
-                appPlacePickedUpPiece(row, col);
+                appPlacePickedUpPiece(logicRow, logicCol);
                 return;
             }
 
-            // 選択された駒がある場合は配置処理
+            // If a piece is selected from palette, place it
             if (appSelectedPiece) {
-                appPlacePiece(row, col);
+                appPlacePiece(logicRow, logicCol);
                 return;
             }
 
-            // 駒を拾い上げる処理
-            const piece = appBoard[row][col];
+            // Otherwise, pick up a piece from the board
+            const piece = appBoard[logicRow][logicCol];
             if (piece && piece.piece) {
-                appPickUpPiece(row, col);
+                appPickUpPiece(logicRow, logicCol);
             }
         }
 
-        // 駒を配置する処理
+        // Function to place a piece (from palette)
         function appPlacePiece(row, col) {
             if (!appSelectedPiece) return;
 
-            // 既に駒がある場合は置き換え
+            // If there's already a piece, capture it
             const existingPiece = appBoard[row][col];
             if (existingPiece && existingPiece.piece) {
                 appAddToCaptured(existingPiece.piece, !existingPiece.player);
             }
 
-            // 成り判定
+            // Check for promotion
             const shouldPromote = appShouldPromote(appSelectedPiece, row, appCurrentPlayer);
             
             if (shouldPromote === 'force') {
-                // 強制成り
+                // Forced promotion
                 const promotedPiece = '+' + appSelectedPiece;
                 appBoard[row][col] = { piece: promotedPiece, player: appCurrentPlayer };
                 appPlayPieceSound();
                 appShowMessage(`${appPieces[promotedPiece]}を配置しました（強制成り）`);
             } else if (shouldPromote === 'optional' && !appAutoPromoteEnabled) {
-                // 成り選択ダイアログを表示
+                // Show promotion dialog for optional promotion
                 appPendingPromotion = { piece: appSelectedPiece, row, col, player: appCurrentPlayer };
                 appShowPromoteDialog();
                 return;
             } else {
-                // 通常配置（自動成り無効の場合は成らない）
+                // Normal placement (no promotion if auto-promote is disabled)
                 appBoard[row][col] = { piece: appSelectedPiece, player: appCurrentPlayer };
                 appPlayPieceSound();
                 appShowMessage(`${appPieces[appSelectedPiece]}を配置しました`);
@@ -900,7 +1014,7 @@
             appUpdateSfen();
         }
 
-        // 駒を拾い上げる処理
+        // Function to pick up a piece from the board
         function appPickUpPiece(row, col) {
             const piece = appBoard[row][col];
             if (!piece || !piece.piece) return;
@@ -908,9 +1022,13 @@
             appPickedUpPiece = { ...piece, sourceRow: row, sourceCol: col };
             appBoard[row][col] = null;
             
-            // 元の位置をハイライト
-            const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
-            cell.classList.add('pickup-source');
+            // Highlight the original position (using original coordinates for display)
+            const displayRow = appBoardFlipped ? 8 - row : row;
+            const displayCol = appBoardFlipped ? 8 - col : col;
+            const cell = document.querySelector(`[data-original-row="${displayRow}"][data-original-col="${displayCol}"]`);
+            if (cell) {
+                cell.classList.add('pickup-source');
+            }
             
             appPlayPieceSound();
             appShowPieceIndicator();
@@ -918,11 +1036,11 @@
             appUpdateSfen();
         }
 
-        // 拾った駒を配置する処理
+        // Function to place a picked-up piece
         function appPlacePickedUpPiece(row, col) {
             if (!appPickedUpPiece) return;
 
-            // 元の位置に戻す場合
+            // If placing back to the original position
             if (row === appPickedUpPiece.sourceRow && col === appPickedUpPiece.sourceCol) {
                 appBoard[row][col] = { piece: appPickedUpPiece.piece, player: appPickedUpPiece.player };
                 appPickedUpPiece = null;
@@ -933,33 +1051,33 @@
                 return;
             }
 
-            // 既に駒がある場合は置き換え
+            // If there's already a piece, capture it
             const existingPiece = appBoard[row][col];
             if (existingPiece && existingPiece.piece) {
                 appAddToCaptured(existingPiece.piece, !existingPiece.player);
             }
 
-            // 成り判定
+            // Check for promotion
             const shouldPromote = appShouldPromote(appPickedUpPiece.piece, row, appPickedUpPiece.player);
             
             if (shouldPromote === 'force') {
-                // 強制成り
+                // Forced promotion
                 const promotedPiece = '+' + appPickedUpPiece.piece;
                 appBoard[row][col] = { piece: promotedPiece, player: appPickedUpPiece.player };
                 appShowMessage(`${appPieces[promotedPiece]}を移動しました（強制成り）`);
             } else if (shouldPromote === 'optional' && !appAutoPromoteEnabled) {
-                // 成り選択ダイアログを表示
+                // Show promotion dialog for optional promotion
                 appPendingPromotion = { 
                     piece: appPickedUpPiece.piece, 
                     row, 
                     col, 
                     player: appPickedUpPiece.player,
-                    isMove: true
+                    isMove: true // Indicate this is a move, not a placement from palette
                 };
                 appShowPromoteDialog();
                 return;
             } else {
-                // 通常移動
+                // Normal move
                 appBoard[row][col] = { piece: appPickedUpPiece.piece, player: appPickedUpPiece.player };
                 appShowMessage(`${appPieces[appPickedUpPiece.piece]}を移動しました`);
             }
@@ -972,66 +1090,66 @@
             appUpdateSfen();
         }
 
-        // 成り判定
+        // Promotion check logic
         function appShouldPromote(piece, row, player) {
-            if (piece.startsWith('+')) return 'none'; // 既に成っている
-            if (piece === 'K' || piece === 'G') return 'none'; // 金と玉は成れない
+            if (piece.startsWith('+')) return 'none'; // Already promoted
+            if (piece === 'K' || piece === 'G') return 'none'; // King and Gold cannot promote
 
-            const promotionZone = player ? [0, 1, 2] : [6, 7, 8];
+            const promotionZone = player ? [0, 1, 2] : [6, 7, 8]; // Sente: ranks 1-3, Gote: ranks 7-9
             
             if (promotionZone.includes(row)) {
-                // 強制成り判定
+                // Forced promotion check
                 if ((piece === 'P' || piece === 'L') && 
                     ((player && row === 0) || (!player && row === 8))) {
-                    return 'force';
+                    return 'force'; // Pawn/Lance reaching last rank
                 }
                 if (piece === 'N' && 
                     ((player && (row === 0 || row === 1)) || (!player && (row === 7 || row === 8)))) {
-                    return 'force';
+                    return 'force'; // Knight reaching last two ranks
                 }
-                return 'optional';
+                return 'optional'; // Optional promotion
             }
             
-            return 'none';
+            return 'none'; // No promotion
         }
 
-        // 成りダイアログ表示
+        // Show promotion dialog
         function appShowPromoteDialog() {
             const dialog = document.getElementById('appPromoteDialog');
             dialog.style.display = 'flex';
             setTimeout(() => dialog.classList.add('show'), 10);
         }
 
-        // 成りダイアログ非表示
+        // Hide promotion dialog
         function appHidePromoteDialog() {
             const dialog = document.getElementById('appPromoteDialog');
             dialog.classList.remove('show');
             setTimeout(() => dialog.style.display = 'none', 300);
         }
 
-        // 駒インジケータ表示
+        // Show piece indicator when a piece is picked up
         function appShowPieceIndicator() {
             if (!appPickedUpPiece) return;
             
-            const indicator = document.querySelector('.app-piece-indicator');
+            let indicator = document.querySelector('.app-piece-indicator');
             if (!indicator) {
-                const newIndicator = document.createElement('div');
-                newIndicator.className = 'app-piece-indicator';
-                newIndicator.onclick = appReturnPickedUpPiece;
-                document.body.appendChild(newIndicator);
+                // Create indicator if it doesn't exist
+                indicator = document.createElement('div');
+                indicator.className = 'app-piece-indicator';
+                indicator.onclick = appReturnPickedUpPiece; // Clicking indicator returns piece to original spot
+                document.body.appendChild(indicator);
             }
             
-            const indicatorElement = document.querySelector('.app-piece-indicator');
             const pieceName = appPieces[appPickedUpPiece.piece];
             const playerName = appPickedUpPiece.player ? '先手' : '後手';
-            indicatorElement.innerHTML = `${playerName}の${pieceName}を持っています`;
-            indicatorElement.classList.add('show');
+            indicator.innerHTML = `${playerName}の${pieceName}を持っています`;
+            indicator.classList.add('show');
             
             const returnBtn = document.getElementById('appReturnToPaletteBtn');
             returnBtn.classList.add('show');
         }
 
-        // 駒インジケータ非表示
+        // Hide piece indicator
         function appHidePieceIndicator() {
             const indicator = document.querySelector('.app-piece-indicator');
             const returnBtn = document.getElementById('appReturnToPaletteBtn');
@@ -1044,11 +1162,15 @@
             }
         }
 
-        // 拾った駒を元に戻す
+        // Return picked-up piece to its original position on the board
         function appReturnPickedUpPiece() {
             if (!appPickedUpPiece) return;
             
-            appBoard[appPickedUpPiece.sourceRow][appPickedUpPiece.sourceCol] = {
+            // Convert source coordinates back to logical board coordinates
+            const logicalSourceRow = appPickedUpPiece.sourceRow;
+            const logicalSourceCol = appPickedUpPiece.sourceCol;
+
+            appBoard[logicalSourceRow][logicalSourceCol] = {
                 piece: appPickedUpPiece.piece,
                 player: appPickedUpPiece.player
             };
@@ -1060,11 +1182,11 @@
             appShowMessage('駒を元の位置に戻しました');
         }
 
-        // 拾った駒をパレットに戻す
+        // Return picked-up piece to the captured pieces list
         function appReturnPickedUpPieceToCapture() {
             if (!appPickedUpPiece) return;
             
-            const basePiece = appPickedUpPiece.piece.replace('+', '');
+            const basePiece = appPickedUpPiece.piece.replace('+', ''); // Get base piece (e.g., 'P' from '+P')
             const targetPlayer = appPickedUpPiece.player ? 'sente' : 'gote';
             appCapturedPieces[targetPlayer][basePiece] = (appCapturedPieces[targetPlayer][basePiece] || 0) + 1;
             
@@ -1076,19 +1198,20 @@
             appShowMessage('駒を持ち駒に戻しました');
         }
 
-        // 持ち駒に追加
+        // Add piece to captured pieces
         function appAddToCaptured(piece, player) {
             const basePiece = piece.replace('+', '');
             const targetPlayer = player ? 'sente' : 'gote';
             appCapturedPieces[targetPlayer][basePiece] = (appCapturedPieces[targetPlayer][basePiece] || 0) + 1;
         }
 
-        // 持ち駒更新
+        // Update captured pieces display for both players
         function appUpdateCaptured() {
             appUpdateCapturedForPlayer('sente');
             appUpdateCapturedForPlayer('gote');
         }
 
+        // Update captured pieces display for a specific player
         function appUpdateCapturedForPlayer(player) {
             const container = document.getElementById(player === 'sente' ? 'appSenteCaptured' : 'appGoteCaptured');
             container.innerHTML = '';
@@ -1106,7 +1229,7 @@
             });
         }
 
-        // 持ち駒使用
+        // Use a captured piece (place it on the board)
         function appUseCapturedPiece(piece, player, element) {
             if (appCapturedPieces[player][piece] > 0) {
                 appCapturedPieces[player][piece]--;
@@ -1114,9 +1237,10 @@
                     delete appCapturedPieces[player][piece];
                 }
                 
-                appCurrentPlayer = (player === 'sente');
-                appSelectedPiece = piece;
+                appCurrentPlayer = (player === 'sente'); // Set current player to the one whose piece was used
+                appSelectedPiece = piece; // Set the selected piece to the captured piece
                 
+                // Update palette selection
                 document.querySelectorAll('.app-piece-btn').forEach(btn => btn.classList.remove('selected'));
                 const paletteBtn = document.querySelector(`[data-piece="${piece}"]`);
                 if (paletteBtn) paletteBtn.classList.add('selected');
@@ -1130,7 +1254,7 @@
             }
         }
 
-        // 駒の利用可能性更新
+        // Update piece availability in the palette (disable if max count reached)
         function appUpdatePieceAvailability() {
             const pieceCount = appCountPiecesOnBoard();
             
@@ -1143,6 +1267,7 @@
                 
                 btn.classList.remove('disabled');
                 
+                // Disable King if max kings per player reached
                 if (piece === 'K') {
                     const senteKings = appCountKingsForPlayer(true);
                     const goteKings = appCountKingsForPlayer(false);
@@ -1151,18 +1276,19 @@
                         btn.classList.add('disabled');
                     }
                 } else if (appMaxPieces[piece] && totalUsed >= appMaxPieces[piece]) {
+                    // Disable other pieces if max count reached
                     btn.classList.add('disabled');
                 }
             });
         }
 
-        // 盤上の駒をカウント
+        // Count pieces on the board
         function appCountPiecesOnBoard() {
             const count = {};
             appBoard.forEach(row => {
                 row.forEach(cell => {
                     if (cell && cell.piece) {
-                        const basePiece = cell.piece.replace('+', '');
+                        const basePiece = cell.piece.replace('+', ''); // Count base piece, not promoted
                         count[basePiece] = (count[basePiece] || 0) + 1;
                     }
                 });
@@ -1170,7 +1296,7 @@
             return count;
         }
 
-        // 王の数をカウント
+        // Count kings for a specific player
         function appCountKingsForPlayer(player) {
             let count = 0;
             appBoard.forEach(row => {
@@ -1183,7 +1309,7 @@
             return count;
         }
 
-        // プレイヤー切り替え
+        // Update player toggle display
         function appUpdatePlayerToggle() {
             const label = document.getElementById('appPlayerLabel');
             const toggle = document.getElementById('appPlayerToggle');
@@ -1197,7 +1323,7 @@
             }
         }
 
-        // 成り設定切り替え
+        // Update promotion setting toggle display
         function appUpdatePromoteToggle() {
             const label = document.getElementById('appPromoteLabel');
             const toggle = document.getElementById('appPromoteToggle');
@@ -1206,16 +1332,30 @@
                 label.textContent = '成らない';
                 toggle.classList.add('active');
             } else {
-                label.textContent = '成る・成らず選択';
+                label.textContent = '成 / 不成';
                 toggle.classList.remove('active');
             }
         }
 
-        // SFEN生成
-        function appGenerateSfen(turn = 'b') {
+        // Update sound toggle display
+        function appUpdateSoundToggle() {
+            const label = document.getElementById('appSoundLabel');
+            const toggle = document.getElementById('appSoundToggle');
+            
+            if (appSoundEnabled) {
+                label.textContent = 'オン';
+                toggle.classList.add('active');
+            } else {
+                label.textContent = 'オフ';
+                toggle.classList.remove('active');
+            }
+        }
+
+        // Generate SFEN string
+        function appGenerateSfen(turn = 'b') { // Default turn is 'b' (black/sente)
             let sfen = '';
             
-            // 盤面部分
+            // Board part
             for (let row = 0; row < 9; row++) {
                 let emptyCount = 0;
                 for (let col = 0; col < 9; col++) {
@@ -1226,7 +1366,7 @@
                             emptyCount = 0;
                         }
                         let pieceChar = piece.piece;
-                        if (!piece.player) {
+                        if (!piece.player) { // If Gote, convert to lowercase
                             pieceChar = pieceChar.toLowerCase();
                         }
                         sfen += pieceChar;
@@ -1242,9 +1382,9 @@
                 }
             }
             
-            sfen += ` ${turn} `;
+            sfen += ` ${turn} `; // Add turn information
             
-            // 持ち駒部分
+            // Captured pieces part
             let handStr = '';
             ['sente', 'gote'].forEach(player => {
                 const pieces = appCapturedPieces[player];
@@ -1263,44 +1403,74 @@
                 });
             });
             
-            sfen += handStr || '-';
-            sfen += ' 1';
+            sfen += handStr || '-'; // If no captured pieces, use '-'
+            sfen += ' 1'; // Move number (always 1 for initial setup)
             
             return sfen;
         }
 
-        // SFEN更新
+        // Update SFEN display
         function appUpdateSfen() {
             const sfenText = document.getElementById('appSfenText');
-            const sfen = appGenerateSfen();
-            sfenText.textContent = sfen;
+            // When SFEN is generated, it should reflect the current logical board state, not the flipped visual state.
+            // The turn in SFEN is independent of the visual flip.
+            sfenText.textContent = appGenerateSfen(appCurrentPlayer ? 'b' : 'w'); 
         }
 
-        // SFEN インポート
+        // Import SFEN string
         function appImportSfen() {
-            const sfenInput = prompt('SFEN文字列を入力してください:');
-            if (!sfenInput) return;
+            // Create a custom input dialog
+            const dialog = document.createElement('div');
+            dialog.className = 'app-turn-dialog show';
+            dialog.innerHTML = `
+                <div class="app-turn-dialog-content" style="width: 400px; max-width: 95%;">
+                    <div class="app-turn-dialog-header">SFEN文字列を入力してください</div>
+                    <textarea id="sfenInput" style="width: 100%; height: 80px; margin: 10px 0; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-family: monospace; font-size: 12px;" placeholder="例: lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"></textarea>
+                    <div class="app-turn-dialog-buttons">
+                        <button class="app-turn-btn sente" id="importSfenOk">インポート</button>
+                        <button class="app-turn-btn gote" id="importSfenCancel">キャンセル</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(dialog);
+
+            document.getElementById('sfenInput').focus();
             
-            try {
-                appParseSfen(sfenInput.trim());
-                appShowMessage('SFEN文字列をインポートしました', 'success');
-            } catch (error) {
-                appShowMessage('SFEN文字列の形式が正しくありません', 'error');
-            }
+            document.getElementById('importSfenOk').onclick = () => {
+                const sfenInput = document.getElementById('sfenInput').value.trim();
+                document.body.removeChild(dialog);
+                
+                if (!sfenInput) {
+                    appShowMessage('SFEN文字列が入力されていません', 'error');
+                    return;
+                }
+                
+                try {
+                    appParseSfen(sfenInput);
+                    appShowMessage('SFEN文字列をインポートしました', 'success');
+                } catch (error) {
+                    appShowMessage('SFEN文字列の形式が正しくありません', 'error');
+                    console.error('SFEN parse error:', error);
+                }
+            };
+            
+            document.getElementById('importSfenCancel').onclick = () => {
+                document.body.removeChild(dialog);
+            };
         }
 
-        // SFEN解析
+        // Parse SFEN string and update board state
         function appParseSfen(sfen) {
             const parts = sfen.split(' ');
             if (parts.length < 3) throw new Error('Invalid SFEN format');
             
             const [boardPart, turnPart, handPart] = parts;
             
-            // 盤面クリア
+            // Clear board and captured pieces
             appBoard = Array(9).fill(null).map(() => Array(9).fill(null));
             appCapturedPieces = { sente: {}, gote: {} };
             
-            // 盤面解析
+            // Parse board part
             const rows = boardPart.split('/');
             if (rows.length !== 9) throw new Error('Invalid board format');
             
@@ -1308,36 +1478,38 @@
                 let colIndex = 0;
                 for (let i = 0; i < row.length; i++) {
                     const char = row[i];
-                    if (/\d/.test(char)) {
+                    if (/\d/.test(char)) { // If character is a number, it represents empty cells
                         colIndex += parseInt(char);
                     } else {
-                        const isPromoted = row[i + 1] === '+';
-                        let piece = isPromoted ? '+' + char.toUpperCase() : char.toUpperCase();
-                        const isGote = char === char.toLowerCase();
-                        
-                        if (isPromoted) i++; // +記号をスキップ
+                        let pieceChar = char;
+                        if (char === '+') { // Handle promoted pieces
+                            i++;
+                            pieceChar += row[i];
+                        }
+                        const piece = pieceChar.toUpperCase();
+                        const isGote = pieceChar === pieceChar.toLowerCase(); // Check if piece is Gote (lowercase)
                         
                         appBoard[rowIndex][colIndex] = {
                             piece: piece,
-                            player: !isGote
+                            player: !isGote // true for Sente, false for Gote
                         };
                         colIndex++;
                     }
                 }
             });
             
-            // 持ち駒解析
+            // Parse captured pieces part
             if (handPart !== '-') {
                 for (let i = 0; i < handPart.length; i++) {
                     const char = handPart[i];
-                    if (/\d/.test(char)) {
+                    if (/\d/.test(char)) { // If character is a number, it's a count
                         const count = parseInt(char);
                         const piece = handPart[i + 1].toUpperCase();
                         const isGote = handPart[i + 1] === handPart[i + 1].toLowerCase();
                         const player = isGote ? 'gote' : 'sente';
                         
                         appCapturedPieces[player][piece] = count;
-                        i++; // 駒文字をスキップ
+                        i++; // Skip the piece character as it's paired with the count
                     } else {
                         const piece = char.toUpperCase();
                         const isGote = char === char.toLowerCase();
@@ -1348,42 +1520,47 @@
                 }
             }
             
-            // 更新
+            // Set current player based on SFEN turn part
+            appCurrentPlayer = (turnPart === 'b');
+
+            // Update UI
+            appCreateBoard(); // Recreate board to update coordinates based on appBoardFlipped state
             appUpdateBoard();
             appUpdateCaptured();
             appUpdatePieceAvailability();
+            appUpdatePlayerToggle(); // Update player toggle label
             appUpdateSfen();
         }
 
-        // 初期配置設定
+        // Set initial Shogi position
         function appSetInitialPosition() {
             appBoard = Array(9).fill(null).map(() => Array(9).fill(null));
             appCapturedPieces = { sente: {}, gote: {} };
             
-            // 先手駒配置
+            // Place Sente pieces
             const senteBackRank = ['L', 'N', 'S', 'G', 'K', 'G', 'S', 'N', 'L'];
             senteBackRank.forEach((piece, col) => {
                 appBoard[8][col] = { piece, player: true };
             });
             
-            appBoard[7][1] = { piece: 'R', player: true };
-            appBoard[7][7] = { piece: 'B', player: true };
+            appBoard[7][1] = { piece: 'R', player: true }; // Sente Rook
+            appBoard[7][7] = { piece: 'B', player: true }; // Sente Bishop
             
             for (let col = 0; col < 9; col++) {
-                appBoard[6][col] = { piece: 'P', player: true };
+                appBoard[6][col] = { piece: 'P', player: true }; // Sente Pawns
             }
             
-            // 後手駒配置
+            // Place Gote pieces
             const goteBackRank = ['L', 'N', 'S', 'G', 'K', 'G', 'S', 'N', 'L'];
             goteBackRank.forEach((piece, col) => {
                 appBoard[0][col] = { piece, player: false };
             });
             
-            appBoard[1][7] = { piece: 'R', player: false };
-            appBoard[1][1] = { piece: 'B', player: false };
+            appBoard[1][7] = { piece: 'R', player: false }; // Gote Rook
+            appBoard[1][1] = { piece: 'B', player: false }; // Gote Bishop
             
             for (let col = 0; col < 9; col++) {
-                appBoard[2][col] = { piece: 'P', player: false };
+                appBoard[2][col] = { piece: 'P', player: false }; // Gote Pawns
             }
             
             appUpdateBoard();
@@ -1393,9 +1570,34 @@
             appShowMessage('初期配置を設定しました');
         }
 
-        // 盤面クリア
+        // Custom confirmation modal function (replaces alert/confirm)
+        function appShowConfirmationDialog(message, onConfirm, onCancel) {
+            const dialog = document.createElement('div');
+            dialog.className = 'app-turn-dialog show'; // Reuse dialog styles
+            dialog.innerHTML = `
+                <div class="app-turn-dialog-content">
+                    <div class="app-turn-dialog-header">${message}</div>
+                    <div class="app-turn-dialog-buttons">
+                        <button class="app-turn-btn sente confirm-yes">はい</button>
+                        <button class="app-turn-btn gote confirm-no">いいえ</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(dialog);
+
+            dialog.querySelector('.confirm-yes').onclick = () => {
+                document.body.removeChild(dialog);
+                onConfirm();
+            };
+            dialog.querySelector('.confirm-no').onclick = () => {
+                document.body.removeChild(dialog);
+                onCancel();
+            };
+        }
+
+        // Clear the entire board
         function appClearBoard() {
-            if (confirm('盤面をクリアしますか？')) {
+            appShowConfirmationDialog('盤面をクリアしますか？', () => {
                 appBoard = Array(9).fill(null).map(() => Array(9).fill(null));
                 appCapturedPieces = { sente: {}, gote: {} };
                 appSelectedPiece = null;
@@ -1409,10 +1611,12 @@
                 appUpdatePieceAvailability();
                 appUpdateSfen();
                 appShowMessage('盤面をクリアしました');
-            }
+            }, () => {
+                // Do nothing if cancelled
+            });
         }
 
-        // 余り駒移動
+        // Move remaining pieces to Gote's captured pieces
         function appMoveRemainingPieces() {
             const totalPieces = appCountPiecesOnBoard();
             const capturedSente = appCapturedPieces.sente;
@@ -1433,20 +1637,22 @@
             appShowMessage('余り駒を後手持ち駒に移動しました');
         }
 
-        // 持ち駒クリア
+        // Clear captured pieces for a specific player
         function appClearCapturedPieces(player) {
-            if (confirm(`${player === 'sente' ? '先手' : '後手'}の持ち駒をクリアしますか？`)) {
+            appShowConfirmationDialog(`${player === 'sente' ? '先手' : '後手'}の持ち駒をクリアしますか？`, () => {
                 appCapturedPieces[player] = {};
                 appUpdateCaptured();
                 appUpdatePieceAvailability();
                 appUpdateSfen();
                 appShowMessage(`${player === 'sente' ? '先手' : '後手'}の持ち駒をクリアしました`);
-            }
+            }, () => {
+                // Do nothing if cancelled
+            });
         }
 
-        // 音再生
+        // Play a piece sound
         function appPlayPieceSound() {
-            if (!appSoundEnabled) return;
+            if (!appSoundEnabled) return; // Only play sound if enabled
             
             try {
                 if (!appAudioContext) {
@@ -1466,11 +1672,11 @@
                 oscillator.start(appAudioContext.currentTime);
                 oscillator.stop(appAudioContext.currentTime + 0.1);
             } catch (error) {
-                // 音声が再生できない場合は無視
+                // Ignore if audio cannot be played (e.g., no user interaction yet)
             }
         }
 
-        // 手番選択ダイアログ表示
+        // Show turn selection dialog for export actions
         function appShowTurnDialog(action) {
             appPendingExportAction = action;
             const dialog = document.getElementById('appTurnDialog');
@@ -1478,104 +1684,190 @@
             setTimeout(() => dialog.classList.add('show'), 10);
         }
 
-        // 手番選択ダイアログ非表示
+        // Hide turn selection dialog
         function appHideTurnDialog() {
             const dialog = document.getElementById('appTurnDialog');
             dialog.classList.remove('show');
             setTimeout(() => dialog.style.display = 'none', 300);
         }
 
-        // URL生成
+        // Generate share URL
         function appGenerateShareUrl(turn = 'b') {
             const sfen = appGenerateSfen(turn);
-            const encodedSfen = encodeURIComponent(sfen);
-            const baseUrl = window.location.origin + window.location.pathname;
-            return `${baseUrl}?sfen=${encodedSfen}`;
+            const sfenPosition = `position sfen ${sfen}`;
+            const encodedSfen = encodeURIComponent(sfenPosition);
+            return `https://www.studiok-i.net/kifu/?sfen=${encodedSfen}`;
         }
 
-        // ぴよ将棋URL生成
+        // Generate PiyoShogi URL
         function appGeneratePiyoShogiUrl(turn = 'b') {
             const sfen = appGenerateSfen(turn);
-            const encodedSfen = encodeURIComponent(sfen);
-            return `https://www.studiok-i.net/ps/?sfen=${encodedSfen}`;
+            const sfenPosition = `position sfen ${sfen}`;
+            const encodedSfen = encodeURIComponent(sfenPosition);
+            return `piyoshogi://?sfen=${encodedSfen}`;
         }
 
-        // イベントリスナー設定
+        // Flip the board - FIXED VERSION
+        function appFlipBoard() {
+            appBoardFlipped = !appBoardFlipped; // Toggle flip state
+
+            // Flip captured pieces (swap sente and gote)
+            const tempCaptured = { ...appCapturedPieces.sente };
+            appCapturedPieces.sente = { ...appCapturedPieces.gote };
+            appCapturedPieces.gote = tempCaptured;
+            
+            // Recreate board UI to update display
+            appCreateBoard(); 
+            appUpdateBoard();
+            appUpdateCaptured(); // Update captured pieces display
+            appUpdateSfen();
+            appShowMessage(appBoardFlipped ? '盤面を反転しました' : '盤面を元に戻しました');
+        }
+
+        // Function to call Gemini API for board analysis
+        async function appAnalyzeBoard() {
+            const sfen = appGenerateSfen(appCurrentPlayer ? 'b' : 'w');
+            const analysisOutput = document.getElementById('appAnalysisOutput');
+            const analysisText = document.getElementById('appAnalysisText');
+
+            analysisOutput.style.display = 'block';
+            analysisText.textContent = '解説を生成中...';
+            analysisOutput.classList.add('loading');
+            appShowMessage('局面を分析しています...', 'warning');
+
+            const prompt = `将棋のSFEN形式の局面データが与えられます。この局面について、日本語で戦略的な解説を行ってください。先手と後手のどちらが有利か、主要な駒の配置、攻め筋、守り筋、持ち駒の状況などを具体的に説明してください。SFEN: ${sfen}`;
+
+            try {
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = { contents: chatHistory };
+                const apiKey = ""; // If you want to use models other than gemini-2.0-flash or imagen-3.0-generate-002, provide an API key here. Otherwise, leave this as-is.
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    analysisText.textContent = text;
+                    appShowMessage('局面の解説が完了しました');
+                } else {
+                    analysisText.textContent = '解説を生成できませんでした。';
+                    appShowMessage('解説生成に失敗しました', 'error');
+                }
+            } catch (error) {
+                console.error('Error calling Gemini API:', error);
+                analysisText.textContent = '解説の取得中にエラーが発生しました。ネットワーク接続を確認してください。';
+                appShowMessage('解説取得中にエラーが発生しました', 'error');
+            } finally {
+                analysisOutput.classList.remove('loading');
+            }
+        }
+
+        // Set up event listeners for all interactive elements
         function appSetupEventListeners() {
-            // プレイヤー切り替え
+            // Player toggle
             document.getElementById('appPlayerToggle').onclick = () => {
                 appCurrentPlayer = !appCurrentPlayer;
                 appUpdatePlayerToggle();
             };
             
-            // 成り設定切り替え
+            // Promotion setting toggle
             document.getElementById('appPromoteToggle').onclick = () => {
                 appAutoPromoteEnabled = !appAutoPromoteEnabled;
                 appUpdatePromoteToggle();
             };
+
+            // Sound toggle
+            document.getElementById('appSoundToggle').onclick = () => {
+                appSoundEnabled = !appSoundEnabled;
+                appUpdateSoundToggle();
+                appShowMessage(appSoundEnabled ? '効果音をオンにしました' : '効果音をオフにしました');
+            };
             
-            // ボタンイベント
+            // Button events
             document.getElementById('appCopySfenBtn').onclick = () => appShowTurnDialog('copy');
             document.getElementById('appImportSfenBtn').onclick = appImportSfen;
             document.getElementById('appGenerateShareBtn').onclick = () => appShowTurnDialog('share');
             document.getElementById('appPiyoshogiBtn').onclick = () => appShowTurnDialog('piyoshogi');
             document.getElementById('appInitialPositionBtn').onclick = appSetInitialPosition;
             document.getElementById('appMoveRemainingBtn').onclick = appMoveRemainingPieces;
+            document.getElementById('appFlipBoardBtn').onclick = appFlipBoard; // Fixed flip board button
             document.getElementById('appClearBoardBtn').onclick = appClearBoard;
             
-            // 持ち駒クリア
+            // Clear captured pieces buttons
             document.getElementById('appClearSenteBtn').onclick = () => appClearCapturedPieces('sente');
             document.getElementById('appClearGoteBtn').onclick = () => appClearCapturedPieces('gote');
             
-            // 拾った駒を戻すボタン
+            // Button to return picked-up piece to captured pieces
             document.getElementById('appReturnToPaletteBtn').onclick = appReturnPickedUpPieceToCapture;
             
-            // 手番選択ダイアログ
+            // Turn selection dialog buttons
             document.getElementById('appTurnSenteBtn').onclick = () => {
-                appExecuteExportAction('b');
+                appExecuteExportAction('b'); // 'b' for Sente (Black)
                 appHideTurnDialog();
             };
             document.getElementById('appTurnGoteBtn').onclick = () => {
-                appExecuteExportAction('w');
+                appExecuteExportAction('w'); // 'w' for Gote (White)
                 appHideTurnDialog();
             };
             
-            // 成り選択ダイアログ
+            // Promotion choice dialog buttons
             document.getElementById('appPromoteYesBtn').onclick = () => {
-                appExecutePromotion(true);
+                appExecutePromotion(true); // Promote
                 appHidePromoteDialog();
             };
             document.getElementById('appPromoteNoBtn').onclick = () => {
-                appExecutePromotion(false);
+                appExecutePromotion(false); // Do not promote
                 appHidePromoteDialog();
             };
         }
 
-        // エクスポートアクション実行
+        // Execute the pending export action (copy, share, piyoshogi)
         function appExecuteExportAction(turn) {
             const sfen = appGenerateSfen(turn);
             
             switch (appPendingExportAction) {
                 case 'copy':
-                    navigator.clipboard.writeText(sfen).then(() => {
+                    // Use document.execCommand('copy') for clipboard operations in iframe
+                    const tempInput = document.createElement('textarea');
+                    tempInput.value = sfen;
+                    document.body.appendChild(tempInput);
+                    tempInput.select();
+                    try {
+                        document.execCommand('copy');
                         appShowMessage('SFENをクリップボードにコピーしました');
-                    }).catch(() => {
+                    } catch (err) {
                         appShowMessage('クリップボードへのコピーに失敗しました', 'error');
-                    });
+                    }
+                    document.body.removeChild(tempInput);
                     break;
                     
                 case 'share':
                     const shareUrl = appGenerateShareUrl(turn);
-                    navigator.clipboard.writeText(shareUrl).then(() => {
+                    const tempShareInput = document.createElement('textarea');
+                    tempShareInput.value = shareUrl;
+                    document.body.appendChild(tempShareInput);
+                    tempShareInput.select();
+                    try {
+                        document.execCommand('copy');
                         appShowMessage('共有URLをクリップボードにコピーしました');
-                    }).catch(() => {
+                    } catch (err) {
                         appShowMessage('クリップボードへのコピーに失敗しました', 'error');
-                    });
+                    }
+                    document.body.removeChild(tempShareInput);
                     break;
                     
                 case 'piyoshogi':
-                    const piyoUrl = appGeneratePiyoShogiUrl(turn);
-                    window.open(piyoUrl, '_blank');
+                    const piyoUrlForOpen = appGeneratePiyoShogiUrl(turn);
+                    window.open(piyoUrlForOpen, '_blank');
                     appShowMessage('ぴよ将棋を開きました');
                     break;
             }
@@ -1583,7 +1875,7 @@
             appPendingExportAction = null;
         }
 
-        // 成り実行
+        // Execute promotion based on user choice
         function appExecutePromotion(promote) {
             if (!appPendingPromotion) return;
             
@@ -1597,6 +1889,7 @@
                 `${appPieces[finalPiece]}を${action}しました（成り）` : 
                 `${appPieces[piece]}を${action}しました`;
             
+            // Reset selected/picked-up piece state
             if (!isMove) {
                 appSelectedPiece = null;
                 document.querySelectorAll('.app-piece-btn').forEach(btn => btn.classList.remove('selected'));
@@ -1615,7 +1908,7 @@
             appPendingPromotion = null;
         }
 
-        // URL パラメータからSFEN読み込み
+        // Load SFEN from URL parameters on app startup
         function appLoadFromUrl() {
             const urlParams = new URLSearchParams(window.location.search);
             const sfen = urlParams.get('sfen');
@@ -1630,25 +1923,26 @@
             }
         }
 
-        // 初期化
+        // Application initialization function
         function appInit() {
-            appCreateBoard();
-            appCreatePiecesPalette();
-            appSetupEventListeners();
-            appUpdatePlayerToggle();
-            appUpdatePromoteToggle();
-            appUpdateBoard();
-            appUpdateCaptured();
-            appUpdatePieceAvailability();
-            appUpdateSfen();
+            appCreateBoard(); // Create the Shogi board UI
+            appCreatePiecesPalette(); // Create the piece selection palette
+            appSetupEventListeners(); // Set up all interactive event listeners
+            appUpdatePlayerToggle(); // Initialize player toggle display
+            appUpdatePromoteToggle(); // Initialize promotion toggle display
+            appUpdateSoundToggle(); // Initialize sound toggle display
+            appUpdateBoard(); // Initial board render
+            appUpdateCaptured(); // Initial captured pieces render
+            appUpdatePieceAvailability(); // Initial piece availability check
+            appUpdateSfen(); // Initial SFEN string generation
             
-            // URL パラメータからSFEN読み込み
+            // Load SFEN from URL parameters if present
             appLoadFromUrl();
             
             appShowMessage('詰将棋練習アプリが起動しました');
         }
 
-        // アプリ初期化実行
+        // Execute app initialization when the DOM is fully loaded
         document.addEventListener('DOMContentLoaded', appInit);
     </script>
 </body>
