@@ -249,7 +249,7 @@
             box-shadow: none !important;
         }
 
-        .app-captured-pieces {
+        .app-captured-pieces-container {
             display: flex;
             flex-direction: column;
             gap: 8px;
@@ -767,83 +767,135 @@
             }
         }
 
+        .app-toggles-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
         @media (max-width: 480px) {
+            .app-toggles-container {
+                flex-direction: row;
+                gap: 4px;
+                margin-bottom: 6px;
+            }
             body {
                 padding: 3px;
             }
             
             .app-container {
-                padding: 8px;
+                padding: 6px;
             }
             
             .app-main-content {
-                gap: 10px;
+                gap: 8px;
             }
             
             .app-board-with-coords {
-                width: min(90vw, 260px); 
-                height: min(90vw, 260px);
-                margin: 0 auto 8px;
+                width: min(85vw, 240px); 
+                height: min(85vw, 240px);
+                margin: 0 auto 6px;
+            }
+            
+            .app-toggles-container {
+                display: flex;
+                gap: 4px;
+                margin-bottom: 6px;
             }
             
             .app-player-toggle {
-                padding: 4px;
-                margin-bottom: 6px;
-                font-size: 13px;
+                flex: 1;
+                padding: 3px;
+                margin-bottom: 0;
+                font-size: 11px;
+            }
+            
+            .app-player-toggle span:first-child {
+                min-width: unset;
+                font-size: 10px;
+            }
+            
+            .app-toggle-switch {
+                width: 40px;
+                height: 20px;
+            }
+            
+            .app-toggle-switch::after {
+                width: 16px;
+                height: 16px;
+            }
+            
+            .app-toggle-switch.active::after {
+                left: 22px;
             }
             
             .app-pieces-palette {
-                grid-template-columns: repeat(3, 1fr);
-                gap: 3px;
-                padding: 6px;
-                margin-bottom: 8px;
-            }
-            
-            .app-piece-btn {
-                padding: 3px 1px;
-                font-size: 10px;
-                min-height: 26px;
-            }
-
-            .app-piece {
-                font-size: 14px; 
-            }
-            .app-cell {
-                font-size: 12px;
-            }
-            .app-coord-label {
-                font-size: 10px;
-            }
-            
-            .app-captured-pieces {
+                grid-template-columns: repeat(5, 1fr);
+                gap: 2px;
+                padding: 4px;
                 margin-bottom: 6px;
             }
             
+            .app-piece-btn {
+                padding: 2px 1px;
+                font-size: 9px;
+                min-height: 22px;
+                border-width: 1px;
+            }
+
+            .app-piece {
+                font-size: 12px; 
+            }
+            .app-cell {
+                font-size: 11px;
+            }
+            .app-coord-label {
+                font-size: 9px;
+            }
+            
+            .app-captured-pieces-container {
+                flex-direction: row;
+                gap: 4px;
+                margin-bottom: 4px;
+            }
+            
             .app-captured-section {
-                padding: 4px;
+                flex: 1;
+                padding: 3px;
             }
             
             .app-captured-section h3 {
-                font-size: 12px;
+                font-size: 10px;
+                margin-bottom: 3px;
+            }
+            
+            .app-clear-captured-btn {
+                font-size: 8px;
+                padding: 1px 3px;
+            }
+            
+            .app-captured-piece {
+                padding: 2px 6px;
+                font-size: 11px;
             }
             
             .app-controls {
-                gap: 4px;
+                gap: 3px;
             }
             
             .app-btn {
-                padding: 6px 10px;
-                font-size: 12px;
+                padding: 5px 8px;
+                font-size: 11px;
             }
             
             .app-sfen-output {
-                margin-top: 10px;
-                padding: 10px;
+                margin-top: 8px;
+                padding: 6px;
             }
             
             .app-sfen-text {
-                font-size: 11px;
-                padding: 6px;
+                font-size: 10px;
+                padding: 4px;
             }
         }
     </style>
@@ -855,21 +907,23 @@
                 </div>
             
             <div class="app-controls-section">
-                <div class="app-player-toggle">
-                    <span>配置する駒:</span>
-                    <span id="appPlayerLabel">先手</span>
-                    <div class="app-toggle-switch" id="appPlayerToggle"></div>
-                </div>
-                
-                <div class="app-player-toggle">
-                    <span>駒の成り:</span>
-                    <span id="appPromoteLabel">成らない</span>
-                    <div class="app-toggle-switch active" id="appPromoteToggle"></div>
+                <div class="app-toggles-container">
+                    <div class="app-player-toggle">
+                        <span>配置する駒:</span>
+                        <span id="appPlayerLabel">先手</span>
+                        <div class="app-toggle-switch" id="appPlayerToggle"></div>
+                    </div>
+                    
+                    <div class="app-player-toggle">
+                        <span>駒の成り:</span>
+                        <span id="appPromoteLabel">成らない</span>
+                        <div class="app-toggle-switch active" id="appPromoteToggle"></div>
+                    </div>
                 </div>
                 
                 <div class="app-pieces-palette" id="appPiecesPalette"></div>
                 
-                <div class="app-captured-pieces">
+                <div class="app-captured-pieces-container">
                     <div class="app-captured-section">
                         <div class="app-captured-header">
                             <h3>先手持ち駒</h3>
