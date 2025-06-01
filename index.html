@@ -83,13 +83,24 @@
             font-size: 18px;
             font-weight: bold;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: background-color 0.15s ease;
             background: #F5DEB3;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
 
         .app-cell:hover {
             background: #FFE4B5;
-            transform: scale(1.05);
+        }
+
+        @media (hover: none) and (pointer: coarse) {
+            .app-cell:hover {
+                background: #F5DEB3;
+                transform: none;
+            }
+            .app-cell:active {
+                background: #FFE4B5;
+            }
         }
 
         .app-piece {
@@ -110,7 +121,7 @@
             transform: rotate(180deg);
         }
 
-        .app-player-toggle, .app-sound-toggle {
+        .app-player-toggle {
             display: flex;
             align-items: center;
             gap: 10px;
@@ -121,7 +132,7 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
 
-        .app-player-toggle span:first-child, .app-sound-toggle span:first-child {
+        .app-player-toggle span:first-child {
             min-width: 80px; 
             white-space: nowrap;
         }
@@ -181,17 +192,28 @@
             font-size: 13px;
             font-weight: bold;
             border-radius: 6px;
-            transition: all 0.2s ease;
+            transition: background-color 0.15s ease;
             min-height: 32px;
             display: flex;
             align-items: center;
             justify-content: center;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
 
         .app-piece-btn:hover {
             background: #e0e0ff;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        @media (hover: none) and (pointer: coarse) {
+            .app-piece-btn:hover {
+                background: #fff;
+                transform: none;
+                box-shadow: none;
+            }
+            .app-piece-btn:active {
+                background: #e0e0ff;
+            }
         }
 
         .app-piece-btn.selected {
@@ -275,6 +297,13 @@
             gap: 8px;
             min-height: 40px;
             align-items: center;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+        }
+
+        .app-captured-pieces-list:hover {
+            background-color: rgba(0, 0, 255, 0.05);
         }
 
         .app-captured-piece {
@@ -284,13 +313,24 @@
             border-radius: 5px;
             cursor: pointer;
             font-weight: bold;
-            transition: all 0.2s ease;
+            transition: background-color 0.15s ease;
             user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
 
         .app-captured-piece:hover {
             background: #ffeeee;
-            transform: scale(1.1);
+        }
+
+        @media (hover: none) and (pointer: coarse) {
+            .app-captured-piece:hover {
+                background: #fff;
+                transform: none;
+            }
+            .app-captured-piece:active {
+                background: #ffeeee;
+            }
         }
 
         .app-captured-piece.sente {
@@ -314,8 +354,20 @@
             cursor: pointer;
             font-size: 14px;
             font-weight: bold;
-            transition: all 0.3s ease;
+            transition: background-color 0.2s ease;
             box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        @media (hover: none) and (pointer: coarse) {
+            .app-btn:hover {
+                transform: none;
+                box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            }
+            .app-btn:active {
+                transform: translateY(1px);
+            }
         }
 
         .app-btn-primary {
@@ -655,7 +707,7 @@
                 margin: 0 auto 10px;
             }
             
-            .app-player-toggle, .app-sound-toggle {
+            .app-player-toggle {
                 padding: 6px;
                 margin-bottom: 8px;
             }
@@ -734,7 +786,7 @@
                 margin: 0 auto 8px;
             }
             
-            .app-player-toggle, .app-sound-toggle {
+            .app-player-toggle {
                 padding: 4px;
                 margin-bottom: 6px;
                 font-size: 13px;
@@ -813,12 +865,6 @@
                     <span>駒の成り:</span>
                     <span id="appPromoteLabel">成らない</span>
                     <div class="app-toggle-switch active" id="appPromoteToggle"></div>
-                </div>
-
-                <div class="app-sound-toggle">
-                    <span>効果音:</span>
-                    <span id="appSoundLabel">オン</span>
-                    <div class="app-toggle-switch active" id="appSoundToggle"></div>
                 </div>
                 
                 <div class="app-pieces-palette" id="appPiecesPalette"></div>
@@ -921,11 +967,17 @@
 
         // Piece selection handling
         function appSelectPiece(pieceKey, btnElement) {
+            // Check if piece is disabled
+            if (btnElement.classList.contains('disabled')) {
+                appShowMessage('この駒はもう配置できません', 'warning');
+                return;
+            }
+            
             appPlayPieceSound();
             document.querySelectorAll('.app-piece-btn').forEach(btn => btn.classList.remove('selected'));
             appSelectedPiece = pieceKey;
             btnElement.classList.add('selected');
-            appShowMessage(`${appPieces[pieceKey]}を選択しました`);
+            appShowMessage(`${appPieces[pieceKey]}を選択しました - 盤面をクリックで配置、持ち駒エリアをクリックで持ち駒に追加`);
         }
 
         // Function to create the Shogi board
@@ -1034,7 +1086,7 @@
 
                     // When board is flipped, show colors in reverse
                     if (appBoardFlipped) {
-                        // Flip the color display: Sente shows as blue, Gote shows as red
+                        // Flip the color display: Sente shows as red, Gote shows as blue
                         colorClass = piece.player ? 'gote' : 'sente'; 
                     } else {
                         // Normal display: Sente shows as red, Gote shows as blue
@@ -1042,24 +1094,22 @@
                     }
 
                     // Determine if the piece graphic should be rotated 180 degrees
-                    // Normal view: Sente upright, Gote rotated
-                    // Flipped view: Sente rotated, Gote upright
                     if (appBoardFlipped) {
                         // In flipped view
                         if (piece.player) {
-                            // Sente pieces - rotated in flipped view
+                            // Sente pieces - rotated in flipped view (facing down)
                             rotationClass = 'rotated-graphic';
                         } else {
-                            // Gote pieces - upright in flipped view
+                            // Gote pieces - upright in flipped view (facing up)
                             rotationClass = '';
                         }
                     } else {
                         // In normal view
                         if (piece.player) {
-                            // Sente pieces - upright in normal view
+                            // Sente pieces - upright in normal view (facing up)
                             rotationClass = '';
                         } else {
-                            // Gote pieces - rotated in normal view
+                            // Gote pieces - rotated in normal view (facing down)
                             rotationClass = 'rotated-graphic';
                         }
                     }
@@ -1099,9 +1149,38 @@
             }
         }
 
+        // Check if placing a pawn would create 2歩 (double pawn)
+        function appCheckDoubledPawn(row, col, player) {
+            // Only check for pawn pieces
+            if (appSelectedPiece !== 'P') return false;
+            
+            // Check if there's already a pawn of the same player in this column
+            for (let r = 0; r < 9; r++) {
+                if (r === row) continue; // Skip the target position
+                const piece = appBoard[r][col];
+                if (piece && piece.piece === 'P' && piece.player === player) {
+                    return true; // Found another pawn in the same column
+                }
+            }
+            return false;
+        }
         // Function to place a piece (from palette)
         function appPlacePiece(row, col) {
             if (!appSelectedPiece) return;
+
+            // Check for 2歩 (double pawn)
+            if (appCheckDoubledPawn(row, col, appCurrentPlayer)) {
+                appShowMessage('2歩は反則です', 'error');
+                // Add visual feedback
+                const displayRow = appBoardFlipped ? 8 - row : row;
+                const displayCol = appBoardFlipped ? 8 - col : col;
+                const cell = document.querySelector(`[data-original-row="${displayRow}"][data-original-col="${displayCol}"]`);
+                if (cell) {
+                    cell.classList.add('invalid');
+                    setTimeout(() => cell.classList.remove('invalid'), 500);
+                }
+                return;
+            }
 
             // If there's already a piece, capture it
             const existingPiece = appBoard[row][col];
@@ -1306,20 +1385,16 @@
             appShowMessage('駒を元の位置に戻しました');
         }
 
-        // Return picked-up piece to the captured pieces list
+        // Return picked-up piece to the palette (remove from game)
         function appReturnPickedUpPieceToCapture() {
             if (!appPickedUpPiece) return;
             
-            const basePiece = appPickedUpPiece.piece.replace('+', ''); // Get base piece (e.g., 'P' from '+P')
-            const targetPlayer = appPickedUpPiece.player ? 'sente' : 'gote';
-            appCapturedPieces[targetPlayer][basePiece] = (appCapturedPieces[targetPlayer][basePiece] || 0) + 1;
-            
+            // Simply remove the piece from the game (return to palette)
             appPickedUpPiece = null;
             appHidePieceIndicator();
-            appUpdateCaptured();
-            appUpdatePieceAvailability();
+            appUpdatePieceAvailability(); // Update piece availability since one piece was removed
             appUpdateSfen();
-            appShowMessage('駒を持ち駒に戻しました');
+            appShowMessage('駒をパレットに戻しました');
         }
 
         // Add piece to captured pieces
@@ -1351,8 +1426,82 @@
                     container.appendChild(pieceElement);
                 }
             });
+            
+            // Add click handler to the container for adding pieces from palette or picked-up pieces
+            container.onclick = (e) => {
+                if (e.target === container) {
+                    if (appSelectedPiece) {
+                        appAddPieceFromPalette(player);
+                    } else if (appPickedUpPiece) {
+                        appAddPickedUpPieceToCapture(player);
+                    }
+                }
+            };
         }
 
+        // Add picked-up piece from board to captured pieces
+        function appAddPickedUpPieceToCapture(targetPlayer) {
+            if (!appPickedUpPiece) return;
+            
+            const basePiece = appPickedUpPiece.piece.replace('+', ''); // Get base piece (e.g., 'P' from '+P')
+            
+            // Kings cannot be added to captured pieces
+            if (basePiece === 'K') {
+                appShowMessage('玉は持ち駒にできません', 'warning');
+                // Return piece to original position
+                appReturnPickedUpPiece();
+                return;
+            }
+            
+            // Add the base piece to captured pieces
+            appCapturedPieces[targetPlayer][basePiece] = (appCapturedPieces[targetPlayer][basePiece] || 0) + 1;
+            
+            appPickedUpPiece = null;
+            appHidePieceIndicator();
+            appUpdateCaptured();
+            appUpdatePieceAvailability();
+            appUpdateSfen();
+            appPlayPieceSound();
+            appShowMessage(`${appPieces[basePiece]}を${targetPlayer === 'sente' ? '先手' : '後手'}の持ち駒に追加しました`);
+        }
+
+        // Add piece from palette to captured pieces
+        function appAddPieceFromPalette(targetPlayer) {
+            if (!appSelectedPiece) return;
+            
+            // Check if the piece can be added (not exceeding max count)
+            const basePiece = appSelectedPiece.replace('+', ''); // Get base piece for counting
+            
+            // Kings cannot be added to captured pieces
+            if (basePiece === 'K') {
+                appShowMessage('玉は持ち駒にできません', 'warning');
+                return;
+            }
+            
+            const pieceCount = appCountPiecesOnBoard();
+            const capturedSente = appCapturedPieces.sente[basePiece] || 0;
+            const capturedGote = appCapturedPieces.gote[basePiece] || 0;
+            const totalUsed = (pieceCount[basePiece] || 0) + capturedSente + capturedGote;
+            
+            if (appMaxPieces[basePiece] && totalUsed >= appMaxPieces[basePiece]) {
+                appShowMessage('この駒はもう配置できません', 'warning');
+                return;
+            }
+            
+            // Add the base piece (not promoted) to captured pieces
+            appCapturedPieces[targetPlayer][basePiece] = (appCapturedPieces[targetPlayer][basePiece] || 0) + 1;
+            
+            // Clear selection
+            appSelectedPiece = null;
+            document.querySelectorAll('.app-piece-btn').forEach(btn => btn.classList.remove('selected'));
+            
+            // Update displays
+            appUpdateCaptured();
+            appUpdatePieceAvailability();
+            appUpdateSfen();
+            appPlayPieceSound();
+            appShowMessage(`${appPieces[basePiece]}を${targetPlayer === 'sente' ? '先手' : '後手'}の持ち駒に追加しました`);
+        }
         // Use a captured piece (place it on the board)
         function appUseCapturedPiece(piece, player, element) {
             if (appCapturedPieces[player][piece] > 0) {
@@ -1361,7 +1510,12 @@
                     delete appCapturedPieces[player][piece];
                 }
                 
-                appCurrentPlayer = (player === 'sente'); // Set current player to the one whose piece was used
+                // When board is flipped, the actual player should be opposite of the visual player
+                const actualPlayer = appBoardFlipped ? 
+                    (player === 'sente' ? false : true) : // If flipped: sente display = gote actual, gote display = sente actual
+                    (player === 'sente' ? true : false);  // If normal: sente display = sente actual, gote display = gote actual
+                
+                appCurrentPlayer = actualPlayer; // Set current player to the actual player
                 appSelectedPiece = piece; // Set the selected piece to the captured piece
                 
                 // Update palette selection
@@ -1384,22 +1538,23 @@
             
             document.querySelectorAll('.app-piece-btn').forEach(btn => {
                 const piece = btn.dataset.piece;
-                const count = pieceCount[piece] || 0;
-                const capturedSente = appCapturedPieces.sente[piece] || 0;
-                const capturedGote = appCapturedPieces.gote[piece] || 0;
+                const basePiece = piece.replace('+', ''); // Get base piece for promoted pieces too
+                const count = pieceCount[basePiece] || 0;
+                const capturedSente = appCapturedPieces.sente[basePiece] || 0;
+                const capturedGote = appCapturedPieces.gote[basePiece] || 0;
                 const totalUsed = count + capturedSente + capturedGote;
                 
                 btn.classList.remove('disabled');
                 
                 // Disable King if max kings per player reached
-                if (piece === 'K') {
+                if (basePiece === 'K') {
                     const senteKings = appCountKingsForPlayer(true);
                     const goteKings = appCountKingsForPlayer(false);
                     if ((appCurrentPlayer && senteKings >= appMaxKingPerPlayer) || 
                         (!appCurrentPlayer && goteKings >= appMaxKingPerPlayer)) {
                         btn.classList.add('disabled');
                     }
-                } else if (appMaxPieces[piece] && totalUsed >= appMaxPieces[piece]) {
+                } else if (appMaxPieces[basePiece] && totalUsed >= appMaxPieces[basePiece]) {
                     // Disable other pieces if max count reached
                     btn.classList.add('disabled');
                 }
@@ -1438,7 +1593,10 @@
             const label = document.getElementById('appPlayerLabel');
             const toggle = document.getElementById('appPlayerToggle');
             
-            if (appCurrentPlayer) {
+            // When board is flipped, show the opposite player in the toggle
+            const displayPlayer = appBoardFlipped ? !appCurrentPlayer : appCurrentPlayer;
+            
+            if (displayPlayer) {
                 label.textContent = '先手';
                 toggle.classList.remove('active');
             } else {
@@ -1840,10 +1998,14 @@
             appCapturedPieces.sente = { ...appCapturedPieces.gote };
             appCapturedPieces.gote = tempCaptured;
             
+            // Flip current player
+            appCurrentPlayer = !appCurrentPlayer;
+            
             // Recreate board UI to update display
             appCreateBoard(); 
             appUpdateBoard();
             appUpdateCaptured(); // Update captured pieces display
+            appUpdatePlayerToggle(); // Update player toggle display
             appUpdateSfen();
             appShowMessage(appBoardFlipped ? '盤面を反転しました' : '盤面を元に戻しました');
         }
@@ -1907,13 +2069,6 @@
             document.getElementById('appPromoteToggle').onclick = () => {
                 appAutoPromoteEnabled = !appAutoPromoteEnabled;
                 appUpdatePromoteToggle();
-            };
-
-            // Sound toggle
-            document.getElementById('appSoundToggle').onclick = () => {
-                appSoundEnabled = !appSoundEnabled;
-                appUpdateSoundToggle();
-                appShowMessage(appSoundEnabled ? '効果音をオンにしました' : '効果音をオフにしました');
             };
             
             // Button events
@@ -2054,7 +2209,6 @@
             appSetupEventListeners(); // Set up all interactive event listeners
             appUpdatePlayerToggle(); // Initialize player toggle display
             appUpdatePromoteToggle(); // Initialize promotion toggle display
-            appUpdateSoundToggle(); // Initialize sound toggle display
             appUpdateBoard(); // Initial board render
             appUpdateCaptured(); // Initial captured pieces render
             appUpdatePieceAvailability(); // Initial piece availability check
