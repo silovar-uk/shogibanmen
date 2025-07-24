@@ -2,8 +2,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-     <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
     <title>詰将棋練習アプリ</title>
     <style>
         body {
@@ -548,7 +548,7 @@
         }
 
         .app-piece-indicator::after {
-            content: '(タップで削除)';
+            content: '(タップで駒台へ)'; /* MODIFIED: Changed text */
             display: block;
             font-size: 11px;
             color: #666;
@@ -1404,10 +1404,12 @@
                 // Create indicator if it doesn't exist
                 indicator = document.createElement('div');
                 indicator.className = 'app-piece-indicator';
-                indicator.onclick = appReturnPickedUpPiece; // Clicking indicator returns piece to original spot
                 document.body.appendChild(indicator);
             }
             
+            // MODIFIED: Changed onclick to return piece to capture/palette
+            indicator.onclick = appReturnPickedUpPieceToCapture; 
+
             const pieceName = appPieces[appPickedUpPiece.piece];
             const playerName = appPickedUpPiece.player ? '先手' : '後手';
             indicator.innerHTML = `${playerName}の${pieceName}を持っています`;
